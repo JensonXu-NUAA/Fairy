@@ -1,14 +1,16 @@
 package cn.nuaa.jensonxu.gensokyo.service.chat;
 
-import cn.nuaa.jensonxu.gensokyo.service.chat.data.CustomChatDTO;
+import cn.nuaa.jensonxu.gensokyo.integration.chat.client.ModelClient;
+import cn.nuaa.jensonxu.gensokyo.integration.chat.data.CustomChatDTO;
 
 import lombok.extern.slf4j.Slf4j;
 
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import reactor.core.publisher.Flux;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.UUID;
 
@@ -23,28 +25,42 @@ public class ChatService {
         this.chatClient = chatClient;
     }
 
-    public Flux<String> streamChat(CustomChatDTO customChatDTO) {
-        StringBuilder fullContent = new StringBuilder();
+    public SseEmitter streamChat(CustomChatDTO customChatDTO) {
         customChatDTO.setChatId(UUID.randomUUID().toString());
+        if(StringUtils.isBlank(customChatDTO.getConversationId())) {
+            customChatDTO.setConversationId(UUID.randomUUID().toString());
+        }
 
-        log.info("开始流式聊天 - 用户ID: {}, 对话ID: {}, 消息: {}",
-                customChatDTO.getUserId(),
-                customChatDTO.getConversationId(),
-                customChatDTO.getMessage());
+        log.info("开始流式聊天 - 用户ID: {}, 对话ID: {}, 消息: {}", customChatDTO.getUserId(), customChatDTO.getConversationId(), customChatDTO.getMessage());
 
-        return chatClient.prompt()
-                .user(customChatDTO.getMessage())  // 简化消息设置
-                .advisors(advisor -> advisor
-                        .param("userId", customChatDTO.getUserId())
-                        .param("chatId", customChatDTO.getChatId())
-                        .param("conversationId", customChatDTO.getConversationId()))
-                .stream()
-                .content()
-                .doOnNext(chunk -> {
-                    fullContent.append(chunk);
-                    log.info("接收到内容块: {}", chunk);
-                })
-                .doOnComplete(() -> log.info("流式响应完成 - ChatID: {}, full content: {}", customChatDTO.getChatId(), fullContent))
-                .doOnError(error -> log.error("流式响应出错 - ChatID: {}, 错误: {}", customChatDTO.getChatId(), error.getMessage()));
+        SseEmitter sseEmitter = new SseEmitter();
+        setSseCallbacks(sseEmitter, customChatDTO.getChatId());
+
+        try {
+            ModelClient client = new ModelClient(chatClient, sseEmitter);
+            client.chat(customChatDTO);
+        } catch (Exception e) {
+            sseEmitter.completeWithError(e);
+        }
+
+        return sseEmitter;
+    }
+
+    /**
+     * 设置SSE生命周期回调
+     */
+    private void setSseCallbacks(SseEmitter emitter, String chatId) {
+        emitter.onCompletion(() -> {
+            log.info("SSE连接完成 - ChatID: {}", chatId);
+        });
+
+        emitter.onTimeout(() -> {
+            log.warn("SSE连接超时 - ChatID: {}", chatId);
+            emitter.complete();
+        });
+
+        emitter.onError((e) -> {
+            log.error("SSE连接错误 - ChatID: {}, 错误: {}", chatId, e.getMessage());
+        });
     }
 }

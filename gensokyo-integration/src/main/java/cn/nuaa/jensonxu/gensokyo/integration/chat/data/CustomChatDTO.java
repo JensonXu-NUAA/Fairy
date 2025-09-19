@@ -1,4 +1,4 @@
-package cn.nuaa.jensonxu.gensokyo.service.chat.data;
+package cn.nuaa.jensonxu.gensokyo.integration.chat.data;
 
 import lombok.Data;
 import org.apache.commons.lang3.StringUtils;

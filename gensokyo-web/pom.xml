@@ -43,6 +43,7 @@
 			<artifactId>gensokyo-integration</artifactId>
 			<version>${project.version}</version>
 		</dependency>
+
 		<dependency>
 			<groupId>cn.nuaa.jensonxu</groupId>
 			<artifactId>gensokyo-service</artifactId>
