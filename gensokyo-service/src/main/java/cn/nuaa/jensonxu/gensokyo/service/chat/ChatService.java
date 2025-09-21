@@ -1,6 +1,6 @@
 package cn.nuaa.jensonxu.gensokyo.service.chat;
 
-import cn.nuaa.jensonxu.gensokyo.integration.chat.client.ModelClient;
+import cn.nuaa.jensonxu.gensokyo.integration.chat.client.CustomModelClient;
 import cn.nuaa.jensonxu.gensokyo.integration.chat.data.CustomChatDTO;
 
 import lombok.extern.slf4j.Slf4j;
@@ -37,7 +37,7 @@ public class ChatService {
         setSseCallbacks(sseEmitter, customChatDTO.getChatId());
 
         try {
-            ModelClient client = new ModelClient(chatClient, sseEmitter);
+            CustomModelClient client = new CustomModelClient(chatClient, sseEmitter);
             client.chat(customChatDTO);
         } catch (Exception e) {
             sseEmitter.completeWithError(e);

@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.5.5</version>
+        <version>3.2.11</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>cn.nuaa.jensonxu</groupId>
@@ -28,16 +28,21 @@
         <java.version>21</java.version>
         <lombok.version>1.18.30</lombok.version>
         <commons-lang3.version>3.14.0</commons-lang3.version>
+        <commons-collections4.version>4.3</commons-collections4.version>
+        <mysql-connector.version>8.3.0</mysql-connector.version>
         <fastjson2.version>2.0.58</fastjson2.version>
-        <spring-ai-alibaba.version>1.0.0-M5.1</spring-ai-alibaba.version>
+        <mybatis-plus.version>3.5.5</mybatis-plus.version>
+        <spring-ai-alibaba.version>1.0.0.2</spring-ai-alibaba.version>
     </properties>
 
     <dependencyManagement>
         <dependencies>
             <dependency>
                 <groupId>com.alibaba.cloud.ai</groupId>
-                <artifactId>spring-ai-alibaba-starter</artifactId>
+                <artifactId>spring-ai-alibaba-bom</artifactId>
                 <version>${spring-ai-alibaba.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
             </dependency>
 
             <dependency>
@@ -54,9 +59,28 @@
             </dependency>
 
             <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-collections4</artifactId>
+                <version>${commons-collections4.version}</version>
+            </dependency>
+
+            <dependency>
                 <groupId>com.alibaba.fastjson2</groupId>
                 <artifactId>fastjson2</artifactId>
                 <version>${fastjson2.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.mysql</groupId>
+                <artifactId>mysql-connector-j</artifactId>
+                <version>${mysql-connector.version}</version>
+                <scope>runtime</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>com.baomidou</groupId>
+                <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
+                <version>${mybatis-plus.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

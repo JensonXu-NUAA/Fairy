@@ -29,7 +29,7 @@
 
         <dependency>
             <groupId>com.alibaba.cloud.ai</groupId>
-            <artifactId>spring-ai-alibaba-starter</artifactId>
+            <artifactId>spring-ai-alibaba-starter-dashscope</artifactId>
         </dependency>
 
         <dependency>
@@ -50,6 +50,12 @@
         <dependency>
             <groupId>cn.nuaa.jensonxu</groupId>
             <artifactId>gensokyo-integration</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>cn.nuaa.jensonxu</groupId>
+            <artifactId>gensokyo-repository</artifactId>
             <version>${project.version}</version>
         </dependency>
     </dependencies>
