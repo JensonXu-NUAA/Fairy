@@ -1,8 +1,10 @@
 package cn.nuaa.jensonxu.gensokyo.integration.chat.config;
 
+import cn.nuaa.jensonxu.gensokyo.integration.chat.advisor.ChatMemoryAdvisor;
 import cn.nuaa.jensonxu.gensokyo.integration.chat.advisor.PersistenceMemoryAdvisor;
 import cn.nuaa.jensonxu.gensokyo.integration.chat.memory.InSqlMemory;
 import cn.nuaa.jensonxu.gensokyo.repository.mysql.chat.CustomChatMemoryRepository;
+
 import com.alibaba.cloud.ai.dashscope.chat.DashScopeChatOptions;
 
 import org.springframework.ai.chat.client.ChatClient;
@@ -10,7 +12,6 @@ import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.model.ChatModel;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -32,11 +33,11 @@ public class ModelConfig {
     }
 
     @Bean
-    @ConditionalOnMissingBean
     public ChatClient chatClient(ChatModel chatModel, ChatMemory chatMemory) {
         return ChatClient.builder(chatModel)
                 .defaultSystem(DEFAULT_PROMPT)
                 .defaultAdvisors(
+                        new ChatMemoryAdvisor(chatMemory), // 负责多轮对话
                         new PersistenceMemoryAdvisor(chatMemory)
                 )
                 .defaultOptions(
