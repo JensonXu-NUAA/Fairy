@@ -1,8 +1,9 @@
 package cn.nuaa.jensonxu.gensokyo.service.chat;
 
-import cn.nuaa.jensonxu.gensokyo.integration.chat.client.CustomModelClient;
+import cn.nuaa.jensonxu.gensokyo.integration.chat.handler.CustomModelClientHandler;
 import cn.nuaa.jensonxu.gensokyo.integration.chat.data.CustomChatDTO;
 
+import cn.nuaa.jensonxu.gensokyo.integration.chat.manager.ModelManager;
 import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.lang3.StringUtils;
@@ -19,10 +20,12 @@ import java.util.UUID;
 public class ChatService {
 
     private final ChatClient chatClient;
+    private final ModelManager manager;
 
     @Autowired
-    public ChatService(ChatClient chatClient) {
+    public ChatService(ChatClient chatClient, ModelManager manager) {
         this.chatClient = chatClient;
+        this.manager = manager;
     }
 
     public SseEmitter streamChat(CustomChatDTO customChatDTO) {
@@ -37,8 +40,8 @@ public class ChatService {
         setSseCallbacks(sseEmitter, customChatDTO.getChatId());
 
         try {
-            CustomModelClient client = new CustomModelClient(chatClient, sseEmitter);
-            client.chat(customChatDTO);
+            CustomModelClientHandler customModelClientHandler = new CustomModelClientHandler(manager.createChatClient(customChatDTO.getModelName()), sseEmitter);
+            customModelClientHandler.chat(customChatDTO);
         } catch (Exception e) {
             sseEmitter.completeWithError(e);
         }

@@ -20,6 +20,7 @@ import org.springframework.context.annotation.Configuration;
 public class ModelConfig {
 
     private final CustomChatMemoryRepository repository;
+
     private static final String DEFAULT_PROMPT = "你是一个博学的智能聊天助手，请根据用户提问回答！";
 
     public ModelConfig(CustomChatMemoryRepository repository) {

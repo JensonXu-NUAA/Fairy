@@ -1,0 +1,14 @@
+spring:
+  application:
+    name: gensokyo-integration
+  cloud:
+    nacos:
+      config:
+        server-addr: localhost:8848
+        namespace: ee81f363-910b-4d68-b2b7-4c1dcf496fdc
+        file-extension: json
+        refresh-enabled: true
+        extension-configs:
+          - data-id: llm_config.json
+            group: GENSOKYO_AI_GROUP
+            refresh: true

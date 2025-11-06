@@ -1,4 +1,4 @@
-package cn.nuaa.jensonxu.gensokyo.integration.chat.client;
+package cn.nuaa.jensonxu.gensokyo.integration.chat.handler;
 
 import cn.nuaa.jensonxu.gensokyo.integration.chat.data.CustomChatDTO;
 
@@ -17,14 +17,14 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 @Slf4j
-public class CustomModelClient {
+public class CustomModelClientHandler {
 
     private final ChatClient chatClient;
     private final StringBuilder fullContent;
     private final SseEmitter sseEmitter;
     private static final String SSE_DONE_MSE = "[DONE]";
 
-    public CustomModelClient(ChatClient chatClient, SseEmitter sseEmitter) {
+    public CustomModelClientHandler(ChatClient chatClient, SseEmitter sseEmitter) {
         this.chatClient = chatClient;
         this.sseEmitter = sseEmitter;
         this.fullContent = new StringBuilder();
