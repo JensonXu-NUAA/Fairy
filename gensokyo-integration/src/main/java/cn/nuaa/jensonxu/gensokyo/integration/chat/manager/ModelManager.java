@@ -1,13 +1,8 @@
 package cn.nuaa.jensonxu.gensokyo.integration.chat.manager;
 
-import cn.nuaa.jensonxu.gensokyo.integration.chat.advisor.PersistenceMemoryAdvisor;
 import cn.nuaa.jensonxu.gensokyo.integration.chat.data.ModelConfig;
-import cn.nuaa.jensonxu.gensokyo.integration.chat.memory.InSqlMemory;
 import cn.nuaa.jensonxu.gensokyo.repository.mysql.chat.CustomChatMemoryRepository;
 
-import com.alibaba.cloud.ai.dashscope.api.DashScopeApi;
-import com.alibaba.cloud.ai.dashscope.chat.DashScopeChatModel;
-import com.alibaba.cloud.ai.dashscope.chat.DashScopeChatOptions;
 import com.alibaba.cloud.nacos.NacosConfigManager;
 import com.alibaba.nacos.api.config.ConfigService;
 
@@ -21,7 +16,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -37,7 +31,7 @@ public class ModelManager {
 
     private final NacosConfigManager nacosConfigManager;
 
-    private final CustomChatMemoryRepository repository;
+    private final ChatClientFactoryManager factoryManager;
 
     @Value("${spring.cloud.nacos.config.extension-configs[0].data-id:llm_config.json}")
     private String dataId;
@@ -47,12 +41,10 @@ public class ModelManager {
 
     private final Map<String, ModelConfig> models = new ConcurrentHashMap<>();
 
-    private static final String DEFAULT_PROMPT = "你是一个博学的智能聊天助手，请根据用户提问回答！";
-
     @Autowired
-    public ModelManager(NacosConfigManager nacosConfigManager, CustomChatMemoryRepository repository) {
-        this.repository = repository;
+    public ModelManager(NacosConfigManager nacosConfigManager, ChatClientFactoryManager factoryManager) {
         this.nacosConfigManager = nacosConfigManager;
+        this.factoryManager = factoryManager;
     }
 
     @PostConstruct
@@ -117,32 +109,7 @@ public class ModelManager {
 
     public ChatClient createChatClient(String modelName) {
         ModelConfig modelConfig = models.get(modelName);
-        ModelConfig.Parameters params = modelConfig.getParameters();
         log.info("find model config: {}", JSON.toJSONString(modelConfig));
-        log.info("base url: {}", modelConfig.getBaseUrl());
-
-        DashScopeApi api = DashScopeApi.builder()
-                .apiKey(modelConfig.getApiKey())
-                .baseUrl(modelConfig.getBaseUrl())
-                .build();
-        DashScopeChatOptions options = DashScopeChatOptions.builder()
-                .withModel(modelConfig.getModelName())
-                .withMaxToken(params.getMaxTokens())
-                .withTemperature(params.getTemperature())
-                .withTopP(params.getTopP())
-                .build();
-        DashScopeChatModel model = DashScopeChatModel.builder()
-                .dashScopeApi(api)
-                .defaultOptions(options)
-                .build();
-        ChatMemory chatMemory = new InSqlMemory(repository);
-
-        // 创建并返回 ChatClient
-        return ChatClient.builder(model)
-                .defaultSystem(DEFAULT_PROMPT)
-                .defaultAdvisors(
-                        new PersistenceMemoryAdvisor(chatMemory)
-                )
-                .build();
+        return  factoryManager.createChatClient(modelConfig);
     }
 }
