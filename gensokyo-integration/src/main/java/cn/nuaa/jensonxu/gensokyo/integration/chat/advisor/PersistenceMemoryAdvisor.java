@@ -57,7 +57,7 @@ public class PersistenceMemoryAdvisor implements StreamAdvisor, CallAdvisor {
         log.info("开始同步对话存储, conversationId: {}", conversationId);
         storeUserMessage(request, conversationId);  // 1. 存储用户当前输入（只存储新的用户消息）
         ChatClientResponse response = chain.nextCall(request);  // 2. 调用下一个advisor获取AI响应
-        storeAiResponse(response, userId, chatId, conversationId);  // 3. 存储AI响应
+        storeCompleteResponse(response, userId, chatId, conversationId);  // 3. 存储AI响应
 
         return response;
     }
@@ -119,7 +119,7 @@ public class PersistenceMemoryAdvisor implements StreamAdvisor, CallAdvisor {
     /**
      * 存储AI响应（同步调用版本）
      */
-    private void storeAiResponse(ChatClientResponse response, String userId, String chatId, String conversationId) {
+    private void storeCompleteResponse(ChatClientResponse response, String userId, String chatId, String conversationId) {
         try {
             assert response.chatResponse() != null;
             String content = response.chatResponse().getResult().getOutput().getText();
