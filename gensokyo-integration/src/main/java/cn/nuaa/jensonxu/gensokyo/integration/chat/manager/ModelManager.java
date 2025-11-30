@@ -1,7 +1,6 @@
 package cn.nuaa.jensonxu.gensokyo.integration.chat.manager;
 
 import cn.nuaa.jensonxu.gensokyo.integration.chat.data.ModelConfig;
-import cn.nuaa.jensonxu.gensokyo.repository.mysql.chat.CustomChatMemoryRepository;
 
 import com.alibaba.cloud.nacos.NacosConfigManager;
 import com.alibaba.nacos.api.config.ConfigService;
