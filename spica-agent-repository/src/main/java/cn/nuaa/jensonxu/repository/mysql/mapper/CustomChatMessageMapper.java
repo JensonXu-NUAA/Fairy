@@ -1,0 +1,8 @@
+package cn.nuaa.jensonxu.repository.mysql.mapper;
+
+import cn.nuaa.jensonxu.repository.mysql.data.CustomChatMessageDO;
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+
+public interface CustomChatMessageMapper extends BaseMapper<CustomChatMessageDO> {
+
+}

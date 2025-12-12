@@ -9,19 +9,19 @@
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>cn.nuaa.jensonxu</groupId>
-    <artifactId>gensokyo-root</artifactId>
+    <artifactId>spica-agent-root</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <packaging>pom</packaging>
 
-    <name>Gensokyo</name>
-    <description>Gensokyo Multi-Module Project</description>
+    <name>Spica-Agent</name>
+    <description>Spica-Agent Multi-Module Project</description>
 
     <!-- 模块管理 -->
     <modules>
-        <module>gensokyo-web</module>
-        <module>gensokyo-service</module>
-        <module>gensokyo-repository</module>
-        <module>gensokyo-integration</module>
+        <module>spica-agent-web</module>
+        <module>spica-agent-service</module>
+        <module>spica-agent-repository</module>
+        <module>spica-agent-integration</module>
     </modules>
 
     <properties>
