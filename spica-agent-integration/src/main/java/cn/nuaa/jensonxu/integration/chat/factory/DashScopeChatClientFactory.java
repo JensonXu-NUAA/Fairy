@@ -1,5 +1,6 @@
 package cn.nuaa.jensonxu.integration.chat.factory;
 
+import cn.nuaa.jensonxu.integration.chat.advisor.ChatMemoryAdvisor;
 import cn.nuaa.jensonxu.integration.chat.advisor.PersistenceMemoryAdvisor;
 import cn.nuaa.jensonxu.integration.chat.data.ModelConfig;
 import cn.nuaa.jensonxu.integration.chat.memory.InSqlMemory;
@@ -63,6 +64,7 @@ public class DashScopeChatClientFactory implements ChatClientFactory {
         return ChatClient.builder(model)
                 .defaultSystem(DEFAULT_PROMPT)
                 .defaultAdvisors(
+                        new ChatMemoryAdvisor(chatMemory),
                         new PersistenceMemoryAdvisor(chatMemory)
                 )
                 .build();
