@@ -32,10 +32,10 @@ public class ModelManager {
 
     private final ChatClientFactoryManager factoryManager;
 
-    @Value("${spring.cloud.nacos.config.extension-configs[0].data-id:llm_config.json}")
+    @Value("${spring.cloud.nacos.config.extension-configs[0].data-id:llm_config}")
     private String dataId;
 
-    @Value("${spring.cloud.nacos.config.extension-configs[0].group:GENSOKYO_AI_GROUP}")
+    @Value("${spring.cloud.nacos.config.extension-configs[0].group:FAIRY_LLM_GROUP}")
     private String group;
 
     private final Map<String, ModelConfig> models = new ConcurrentHashMap<>();

@@ -136,13 +136,17 @@ public class PersistenceMemoryAdvisor implements StreamAdvisor, CallAdvisor {
      */
     private void storeFullContent(String content, String userId, String chatId, String conversationId) {
         try {
+
             Map<String, Object> assistantMetaData = new HashMap<>();
             assistantMetaData.put("userId", userId);
             assistantMetaData.put("chatId", chatId);
             assistantMetaData.put("conversationId", conversationId);
             assistantMetaData.put("modelName", "qwen-turbo");
 
-            AssistantMessage aiMessage = new AssistantMessage(content, assistantMetaData);
+            AssistantMessage aiMessage = AssistantMessage.builder()
+                    .content(content)
+                    .properties(assistantMetaData)
+                    .build();
             chatMemory.add(conversationId, aiMessage);
             log.info("store assistant message: conversationId={}, length={}", conversationId, content.length());
         } catch (Exception e) {

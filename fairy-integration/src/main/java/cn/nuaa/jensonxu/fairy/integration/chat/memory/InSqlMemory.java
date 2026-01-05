@@ -68,7 +68,10 @@ public class InSqlMemory implements ChatMemory {
                                     .text(messageDO.getMessage())
                                     .metadata(metadata)
                                     .build();
-                            case ASSISTANT -> new AssistantMessage(messageDO.getMessage(), metadata);
+                            case ASSISTANT -> AssistantMessage.builder()
+                                    .content(messageDO.getMessage())
+                                    .properties(metadata)
+                                    .build();
                             case SYSTEM -> SystemMessage.builder()
                                     .text(messageDO.getMessage())
                                     .metadata(metadata)

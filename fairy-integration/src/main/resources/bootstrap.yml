@@ -9,6 +9,6 @@ spring:
         file-extension: json
         refresh-enabled: true
         extension-configs:
-          - data-id: llm_config.json
-            group: SPICA_LLM_CONFIG
+          - data-id: llm_config
+            group: FAIRY_LLM_GROUP
             refresh: true

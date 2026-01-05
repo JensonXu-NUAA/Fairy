@@ -42,6 +42,7 @@ public class DashScopeChatClientFactory implements ChatClientFactory {
             throw new IllegalArgumentException("DashScope API Key 不能为空");
         }
 
+        ChatMemory chatMemory = new InSqlMemory(repository);
         ModelConfig.Parameters params = modelConfig.getParameters();
 
         DashScopeApi api = DashScopeApi.builder()
@@ -58,7 +59,6 @@ public class DashScopeChatClientFactory implements ChatClientFactory {
                 .dashScopeApi(api)
                 .defaultOptions(options)
                 .build();
-        ChatMemory chatMemory = new InSqlMemory(repository);
 
         // 创建并返回 ChatClient
         return ChatClient.builder(model)
