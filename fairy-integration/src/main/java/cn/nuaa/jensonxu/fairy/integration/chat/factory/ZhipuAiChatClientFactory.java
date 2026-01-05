@@ -1,5 +1,7 @@
 package cn.nuaa.jensonxu.fairy.integration.chat.factory;
 
+import cn.nuaa.jensonxu.fairy.integration.chat.advisor.ChatMemoryAdvisor;
+import cn.nuaa.jensonxu.fairy.integration.chat.advisor.PersistenceMemoryAdvisor;
 import cn.nuaa.jensonxu.fairy.integration.chat.data.ModelConfig;
 import cn.nuaa.jensonxu.fairy.integration.chat.memory.InSqlMemory;
 import cn.nuaa.jensonxu.fairy.repository.mysql.chat.CustomChatMemoryRepository;
@@ -8,6 +10,9 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.memory.ChatMemory;
+import org.springframework.ai.zhipuai.ZhiPuAiChatModel;
+import org.springframework.ai.zhipuai.ZhiPuAiChatOptions;
+import org.springframework.ai.zhipuai.api.ZhiPuAiApi;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -38,12 +43,33 @@ public class ZhipuAiChatClientFactory implements ChatClientFactory {
         ChatMemory chatMemory = new InSqlMemory(repository);
         ModelConfig.Parameters params = modelConfig.getParameters();
 
-        return null;
+        log.info(modelConfig.getApiKey());
+        log.info(modelConfig.getBaseUrl());
 
+        ZhiPuAiApi api = ZhiPuAiApi.builder()
+                .apiKey(modelConfig.getApiKey())
+                .baseUrl(modelConfig.getBaseUrl())
+                .build();
+        ZhiPuAiChatOptions options = ZhiPuAiChatOptions.builder()
+                .model(ZhiPuAiApi.ChatModel.GLM_4_5_Flash.getValue())
+                .maxTokens(params.getMaxTokens())
+                .temperature(params.getTemperature())
+                .topP(params.getTopP())
+                .build();
+        ZhiPuAiChatModel model = new ZhiPuAiChatModel(api, options);
+
+        // 创建并返回 ChatClient
+        return ChatClient.builder(model)
+                .defaultSystem(DEFAULT_PROMPT)
+                .defaultAdvisors(
+                        new ChatMemoryAdvisor(chatMemory),
+                        new PersistenceMemoryAdvisor(chatMemory, modelConfig.getModelName())
+                )
+                .build();
     }
 
     @Override
     public String getProviderName() {
-        return "";
+        return "zhipuai";
     }
 }

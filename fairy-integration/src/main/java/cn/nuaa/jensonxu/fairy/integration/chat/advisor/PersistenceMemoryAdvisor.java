@@ -15,9 +15,6 @@ import org.springframework.ai.chat.client.advisor.api.StreamAdvisorChain;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.messages.MessageType;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
-
 import org.springframework.ai.chat.client.advisor.api.CallAdvisor;
 import org.springframework.ai.chat.client.advisor.api.StreamAdvisor;
 import reactor.core.publisher.Flux;
@@ -26,14 +23,13 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Slf4j
-@Component
 public class PersistenceMemoryAdvisor implements StreamAdvisor, CallAdvisor {
-
     private final ChatMemory chatMemory;
+    private final String modelName;
 
-    @Autowired
-    public PersistenceMemoryAdvisor(ChatMemory chatMemory) {
+    public PersistenceMemoryAdvisor(ChatMemory chatMemory, String modelName) {
         this.chatMemory = chatMemory;
+        this.modelName = modelName;
     }
 
     @NotNull
@@ -141,7 +137,7 @@ public class PersistenceMemoryAdvisor implements StreamAdvisor, CallAdvisor {
             assistantMetaData.put("userId", userId);
             assistantMetaData.put("chatId", chatId);
             assistantMetaData.put("conversationId", conversationId);
-            assistantMetaData.put("modelName", "qwen-turbo");
+            assistantMetaData.put("modelName", modelName);
 
             AssistantMessage aiMessage = AssistantMessage.builder()
                     .content(content)

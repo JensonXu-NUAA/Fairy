@@ -32,6 +32,7 @@
         <mysql-connector.version>8.3.0</mysql-connector.version>
         <fastjson2.version>2.0.58</fastjson2.version>
         <mybatis-plus.version>3.5.5</mybatis-plus.version>
+        <spring-ai.version>1.1.0-M4</spring-ai.version>
         <spring-ai-alibaba.version>1.1.0.0-M5</spring-ai-alibaba.version>
         <spring-cloud.version>2024.0.1</spring-cloud.version>
         <spring-cloud-alibaba.version>2023.0.1.2</spring-cloud-alibaba.version>
@@ -39,6 +40,13 @@
 
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>org.springframework.ai</groupId>
+                <artifactId>spring-ai-bom</artifactId>
+                <version>${spring-ai.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
 
             <dependency>
                 <groupId>org.springframework.cloud</groupId>
@@ -66,6 +74,12 @@
                 <groupId>com.alibaba.cloud.ai</groupId>
                 <artifactId>spring-ai-alibaba-starter-dashscope</artifactId>
                 <version>${spring-ai-alibaba.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.springframework.ai</groupId>
+                <artifactId>spring-ai-zhipuai</artifactId>
+                <version>${spring-ai.version}</version>
             </dependency>
 
             <dependency>

@@ -65,7 +65,7 @@ public class DashScopeChatClientFactory implements ChatClientFactory {
                 .defaultSystem(DEFAULT_PROMPT)
                 .defaultAdvisors(
                         new ChatMemoryAdvisor(chatMemory),
-                        new PersistenceMemoryAdvisor(chatMemory)
+                        new PersistenceMemoryAdvisor(chatMemory, modelConfig.getModelName())
                 )
                 .build();
 

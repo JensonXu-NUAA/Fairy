@@ -7,7 +7,6 @@ import cn.nuaa.jensonxu.fairy.integration.chat.manager.ModelManager;
 import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -18,13 +17,10 @@ import java.util.UUID;
 @Slf4j
 @Service
 public class ChatService {
-
-    private final ChatClient chatClient;
     private final ModelManager manager;
 
     @Autowired
-    public ChatService(ChatClient chatClient, ModelManager manager) {
-        this.chatClient = chatClient;
+    public ChatService(ModelManager manager) {
         this.manager = manager;
     }
 

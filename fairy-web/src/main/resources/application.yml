@@ -8,7 +8,12 @@ spring:
       chat:
         options:
           model: qwen-turbo
-  
+    zhipuai:
+      api-key: f2c394fb2bd74f878b6b7f58dfe31b76.QG7vTWHX5LR0kP7P
+      chat:
+        options:
+          model: glm-4.5-flash
+
   datasource:
     url: jdbc:mysql://139.224.197.83:3306/fairy?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
     username: user
