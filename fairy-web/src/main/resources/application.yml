@@ -1,0 +1,19 @@
+spring:
+  application:
+    name: spica-agent-web
+  
+  ai:
+    dashscope:
+      api-key: ${DASHSCOPE_API_KEY}
+      chat:
+        options:
+          model: qwen-turbo
+  
+  datasource:
+    url: jdbc:mysql://139.224.197.83:3306/spica?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
+    username: user
+    password: user123
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+server:
+  port: 12100
