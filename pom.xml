@@ -9,19 +9,19 @@
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>cn.nuaa.jensonxu</groupId>
-    <artifactId>spica-agent-root</artifactId>
+    <artifactId>fairy-root</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <packaging>pom</packaging>
 
-    <name>Spica-Agent</name>
-    <description>Spica-Agent Multi-Module Project</description>
+    <name>Fairy</name>
+    <description>Fairy Multi-Module Project</description>
 
     <!-- 模块管理 -->
     <modules>
-        <module>spica-agent-web</module>
-        <module>spica-agent-service</module>
-        <module>spica-agent-repository</module>
-        <module>spica-agent-integration</module>
+        <module>fairy-web</module>
+        <module>fairy-service</module>
+        <module>fairy-repository</module>
+        <module>fairy-integration</module>
     </modules>
 
     <properties>
