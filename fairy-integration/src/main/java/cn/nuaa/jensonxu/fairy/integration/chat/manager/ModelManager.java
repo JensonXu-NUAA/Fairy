@@ -88,7 +88,7 @@ public class ModelManager {
                                 ModelConfig modelConfig = jsonObject.getObject(modelName, ModelConfig.class);
                                 modelConfig.setModelName(modelName);
                                 models.put(modelName, modelConfig);
-                                log.info("[nacos] {}模型配置更新成功: {}", modelConfig.getModelName(), JSON.toJSONString(modelConfig));
+                                log.info("[nacos] {} 模型配置更新成功: {}", modelConfig.getModelName(), JSON.toJSONString(modelConfig));
                             }
 
                             // 删除模型配置

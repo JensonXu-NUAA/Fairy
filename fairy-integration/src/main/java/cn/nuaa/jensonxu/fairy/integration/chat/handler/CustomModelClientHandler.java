@@ -4,8 +4,11 @@ import cn.nuaa.jensonxu.fairy.integration.chat.data.CustomChatDTO;
 
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
+import lombok.Builder;
+import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.ai.chat.client.ChatClient;
@@ -14,21 +17,29 @@ import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.metadata.ChatResponseMetadata;
 import org.springframework.ai.chat.metadata.Usage;
 import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import reactor.core.publisher.Flux;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
 
 @Slf4j
 public class CustomModelClientHandler {
 
+    private String chatId;
+
+    private Integer chunkId = 1;
+
     private final ChatClient chatClient;
 
     private final SseEmitter sseEmitter;
+
+    private final Cache cache;
 
     private final StringBuilder fullContent = new StringBuilder();
 
@@ -36,13 +47,15 @@ public class CustomModelClientHandler {
 
     private static final String SSE_DONE_MSE = "[DONE]";
 
-    public CustomModelClientHandler(ChatClient chatClient, SseEmitter sseEmitter) {
+    public CustomModelClientHandler(ChatClient chatClient, SseEmitter sseEmitter, CacheManager cacheManager) {
         this.chatClient = chatClient;
         this.sseEmitter = sseEmitter;
+        this.cache = cacheManager.getCache("sseChunkCache");
     }
 
     public void chat(CustomChatDTO customChatDTO) {
-        log.info("[Stream] 开始处理聊天 - ChatID: {}, UserID: {}", customChatDTO.getChatId(), customChatDTO.getUserId());
+        chatId = customChatDTO.getChatId();
+        log.info("[Chat] 开始处理聊天 - ChatID: {}, UserID: {}", customChatDTO.getChatId(), customChatDTO.getUserId());
         CompletableFuture.runAsync(() -> {
            try {
                JSONObject startMessage = new JSONObject();
@@ -50,10 +63,9 @@ public class CustomModelClientHandler {
                startMessage.put("conversationId", customChatDTO.getConversationId());
                startMessage.put("chatId", customChatDTO.getChatId());
                sendSseEvent("start", JSON.toJSONString(startMessage));  // 预发送一个 start 数据包
-
                chatHandler(customChatDTO);
            } catch (Exception e) {
-               log.error("[Stream] 处理聊天异常 - ChatID: {}, 错误: {}", customChatDTO.getChatId(), e.getMessage(), e);
+               log.error("[Chat] 处理聊天异常 - ChatID: {}, 信息: {}", customChatDTO.getChatId(), e.getMessage(), e);
            }
         });
     }
@@ -89,36 +101,46 @@ public class CustomModelClientHandler {
 
     private void dataHandler(ChatResponse chatResponse) {
         try {
-            String chunkId = "";
             String content = "";
+            Chunk chunk = Chunk.builder()
+                    .chunkId(chunkId)
+                    .chatResponse(chatResponse)
+                    .build();
 
-            // 提取并保存Usage信息（可能在任何一个响应中）
+            // 提取并保存Usage信息
             if (ObjectUtils.isNotEmpty(chatResponse.getMetadata())) {
                 ChatResponseMetadata metadata = chatResponse.getMetadata();
-                chunkId = metadata.getId();
                 usageRef.set(metadata.getUsage());
             }
 
             if (ObjectUtils.isNotEmpty(chatResponse.getResult()) && chatResponse.getResult().getOutput() != null) {
                 content = chatResponse.getResult().getOutput().getText();
             }
-            fullContent.append(content);
 
             // 如果内容为空或null，跳过
             if (StringUtils.isBlank(content)) {
                 return;
             }
 
-            log.info("[Stream] get sse send chunk data, id: {}, content: {}", chunkId, content);
+            @SuppressWarnings("unchecked")
+            List<Chunk> chunkCache = cache.get(chatId, List.class);
+            if(cache.get(chatId) == null) {
+                chunkCache = new CopyOnWriteArrayList<>();
+            }
+
+            chunkCache.add(chunk);
+            cache.put(chatId, chunkCache);
+            fullContent.append(content);
+            log.info("[Chat] 获取SSE数据包, id: {}, content: {}, 已缓存chunk数量: {}", chunkId, content, chunkCache.size());
             sendSseEvent("message", content);
         } catch (Exception e) {
-            log.error("sse send chunk data error", e);
+            log.error("[Chat] sse send chunk data error", e);
         }
     }
 
     private void onCompleteHandler() {
         try {
-            log.info("[Stream] sse stream chat complete, full content: {}", fullContent);
+            log.info("[Chat] SSE流式对话完成, 完整内容: {}", fullContent);
             // 获取并发送token使用信息
             Usage usage = usageRef.get();
             if (usage != null) {
@@ -135,6 +157,9 @@ public class CustomModelClientHandler {
 
             sseEmitter.send(SSE_DONE_MSE);
             sseEmitter.complete();
+
+            cache.evict(chatId);
+            log.info("[Chat] 清理 chatId {} 的缓存", chatId);
         } catch (Exception e) {
             log.error("sse close connection error", e);
         }
@@ -150,9 +175,41 @@ public class CustomModelClientHandler {
     }
 
     private void sendSseEvent(String event,  String data) throws IOException {
-        JSONObject message = new JSONObject();
-        message.put("event", event);
-        message.put("data", data);
-        sseEmitter.send(message.toJSONString());
+        SseEmitter.SseEventBuilder builder = SseEmitter.event()
+                .id(chunkId.toString())
+                .name(event)
+                .data(data)
+                .reconnectTime(3000L);
+
+        sseEmitter.send(builder.build());
+        chunkId++;
+    }
+
+    private List<ChatResponse> getCacheAfter(String chunkId) {
+        @SuppressWarnings("unchecked")
+        List<Chunk> allChunks = cache.get(chatId, List.class);
+
+        if(CollectionUtils.isEmpty(allChunks)) {
+            return Collections.emptyList();
+        }
+
+        boolean found = false;
+        List<ChatResponse> responseList = new ArrayList<>();
+        for(Chunk chunk : allChunks) {
+            if(found) {
+                responseList.add(chunk.getChatResponse());
+            } else if(chunk.getChunkId().equals(chunkId)) {
+                found = true;
+            }
+        }
+        return responseList;
+    }
+
+    @Data
+    @Builder
+    static class Chunk {
+        private Integer chunkId;
+
+        private ChatResponse chatResponse;
     }
 }

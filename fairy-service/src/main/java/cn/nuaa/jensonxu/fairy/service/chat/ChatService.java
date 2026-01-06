@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.CacheManager;
 import org.springframework.stereotype.Service;
 
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -17,11 +18,15 @@ import java.util.UUID;
 @Slf4j
 @Service
 public class ChatService {
-    private final ModelManager manager;
+
+    private final CacheManager cacheManager;
+
+    private final ModelManager modelManager;
 
     @Autowired
-    public ChatService(ModelManager manager) {
-        this.manager = manager;
+    public ChatService(ModelManager modelManager, CacheManager cacheManager) {
+        this.modelManager = modelManager;
+        this.cacheManager = cacheManager;
     }
 
     public SseEmitter streamChat(CustomChatDTO customChatDTO) {
@@ -30,13 +35,13 @@ public class ChatService {
             customChatDTO.setConversationId(UUID.randomUUID().toString());
         }
 
-        log.info("开始流式聊天 - 用户ID: {}, 对话ID: {}, 消息: {}", customChatDTO.getUserId(), customChatDTO.getConversationId(), customChatDTO.getMessage());
+        log.info("[Chat] 开始流式聊天对话 - 用户ID: {}, 对话ID: {}, 消息: {}", customChatDTO.getUserId(), customChatDTO.getConversationId(), customChatDTO.getMessage());
 
-        SseEmitter sseEmitter = new SseEmitter();
+        SseEmitter sseEmitter = new SseEmitter(30 * 1000L);
         setSseCallbacks(sseEmitter, customChatDTO.getChatId());
 
         try {
-            CustomModelClientHandler customModelClientHandler = new CustomModelClientHandler(manager.createChatClient(customChatDTO.getModelName()), sseEmitter);
+            CustomModelClientHandler customModelClientHandler = new CustomModelClientHandler(modelManager.createChatClient(customChatDTO.getModelName()), sseEmitter, cacheManager);
             customModelClientHandler.chat(customChatDTO);
         } catch (Exception e) {
             sseEmitter.completeWithError(e);
@@ -50,16 +55,16 @@ public class ChatService {
      */
     private void setSseCallbacks(SseEmitter emitter, String chatId) {
         emitter.onCompletion(() -> {
-            log.info("SSE连接完成 - ChatID: {}", chatId);
+            log.info("[Chat] SSE连接完成 - ChatID: {}", chatId);
         });
 
         emitter.onTimeout(() -> {
-            log.warn("SSE连接超时 - ChatID: {}", chatId);
+            log.warn("[Chat] SSE连接超时 - ChatID: {}", chatId);
             emitter.complete();
         });
 
         emitter.onError((e) -> {
-            log.error("SSE连接错误 - ChatID: {}, 错误: {}", chatId, e.getMessage());
+            log.error("[Chat] SSE连接错误 - ChatID: {}, 错误: {}", chatId, e.getMessage());
         });
     }
 }

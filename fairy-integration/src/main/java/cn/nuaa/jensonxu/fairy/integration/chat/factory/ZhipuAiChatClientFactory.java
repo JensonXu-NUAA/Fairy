@@ -37,7 +37,7 @@ public class ZhipuAiChatClientFactory implements ChatClientFactory {
     @Override
     public ChatClient createChatClient(ModelConfig modelConfig) {
         if (!StringUtils.hasText(modelConfig.getApiKey())) {
-            throw new IllegalArgumentException("ZhipuAi API Key 不能为空");
+            throw new IllegalArgumentException("[ZhipuAi] API Key 不能为空");
         }
 
         ChatMemory chatMemory = new InSqlMemory(repository);
