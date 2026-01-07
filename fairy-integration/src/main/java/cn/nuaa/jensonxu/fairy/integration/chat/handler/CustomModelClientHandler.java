@@ -4,26 +4,34 @@ import cn.nuaa.jensonxu.fairy.integration.chat.data.CustomChatDTO;
 
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
+
 import lombok.Builder;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 
-import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.collections4.CollectionUtils;
+
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.metadata.ChatResponseMetadata;
 import org.springframework.ai.chat.metadata.Usage;
 import org.springframework.ai.chat.model.ChatResponse;
+
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+
 import reactor.core.publisher.Flux;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.Map;
+import java.util.List;
+import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
@@ -158,7 +166,7 @@ public class CustomModelClientHandler {
             sseEmitter.send(SSE_DONE_MSE);
             sseEmitter.complete();
 
-            cache.evict(chatId);
+            cache.evict(chatId);  // 清理对应chat id 下的本地缓存
             log.info("[Chat] 清理 chatId {} 的缓存", chatId);
         } catch (Exception e) {
             log.error("sse close connection error", e);
@@ -185,7 +193,7 @@ public class CustomModelClientHandler {
         chunkId++;
     }
 
-    private List<ChatResponse> getCacheAfter(String chunkId) {
+    private List<ChatResponse> getCacheAfter(Integer chunkId) {
         @SuppressWarnings("unchecked")
         List<Chunk> allChunks = cache.get(chatId, List.class);
 
