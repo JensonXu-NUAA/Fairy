@@ -5,8 +5,6 @@ import cn.nuaa.jensonxu.fairy.integration.chat.data.CustomChatDTO;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
 
-import lombok.Builder;
-import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.lang3.ObjectUtils;
@@ -20,13 +18,11 @@ import org.springframework.ai.chat.metadata.ChatResponseMetadata;
 import org.springframework.ai.chat.metadata.Usage;
 import org.springframework.ai.chat.model.ChatResponse;
 
-import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import reactor.core.publisher.Flux;
 
-import java.io.IOException;
 import java.util.Map;
 import java.util.List;
 import java.util.HashMap;
@@ -34,33 +30,15 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.atomic.AtomicReference;
 
 @Slf4j
-public class CustomModelClientHandler {
-
-    private String chatId;
-
-    private Integer chunkId = 1;
-
-    private final ChatClient chatClient;
-
-    private final SseEmitter sseEmitter;
-
-    private final Cache cache;
-
-    private final StringBuilder fullContent = new StringBuilder();
-
-    private final AtomicReference<Usage> usageRef = new AtomicReference<>();
-
-    private static final String SSE_DONE_MSE = "[DONE]";
+public class CustomModelClientHandler extends BaseChatModelClientHandler {
 
     public CustomModelClientHandler(ChatClient chatClient, SseEmitter sseEmitter, CacheManager cacheManager) {
-        this.chatClient = chatClient;
-        this.sseEmitter = sseEmitter;
-        this.cache = cacheManager.getCache("sseChunkCache");
+        super(chatClient, sseEmitter, cacheManager);
     }
 
+    @Override
     public void chat(CustomChatDTO customChatDTO) {
         chatId = customChatDTO.getChatId();
         log.info("[Chat] 开始处理聊天 - ChatID: {}, UserID: {}", customChatDTO.getChatId(), customChatDTO.getUserId());
@@ -70,7 +48,7 @@ public class CustomModelClientHandler {
                startMessage.put("userId", customChatDTO.getUserId());
                startMessage.put("conversationId", customChatDTO.getConversationId());
                startMessage.put("chatId", customChatDTO.getChatId());
-               sendSseEvent("start", JSON.toJSONString(startMessage));  // 预发送一个 start 数据包
+               sendSseEvent(SSE_START, JSON.toJSONString(startMessage));  // 预发送一个 start 数据包
                chatHandler(customChatDTO);
            } catch (Exception e) {
                log.error("[Chat] 处理聊天异常 - ChatID: {}, 信息: {}", customChatDTO.getChatId(), e.getMessage(), e);
@@ -78,7 +56,8 @@ public class CustomModelClientHandler {
         });
     }
 
-    private void chatHandler(CustomChatDTO customChatDTO) {
+    @Override
+    protected void chatHandler(CustomChatDTO customChatDTO) {
         Map<String, Object> userMessageMetadata = new HashMap<>();
         userMessageMetadata.put("userId", customChatDTO.getUserId());
         userMessageMetadata.put("chatId", customChatDTO.getChatId());
@@ -107,7 +86,8 @@ public class CustomModelClientHandler {
                 .subscribe();
     }
 
-    private void dataHandler(ChatResponse chatResponse) {
+    @Override
+    protected void dataHandler(ChatResponse chatResponse) {
         try {
             String content = "";
             Chunk chunk = Chunk.builder()
@@ -125,9 +105,8 @@ public class CustomModelClientHandler {
                 content = chatResponse.getResult().getOutput().getText();
             }
 
-            // 如果内容为空或null，跳过
             if (StringUtils.isBlank(content)) {
-                return;
+                return;  // 如果内容为空或null，跳过
             }
 
             @SuppressWarnings("unchecked")
@@ -140,17 +119,17 @@ public class CustomModelClientHandler {
             cache.put(chatId, chunkCache);
             fullContent.append(content);
             log.info("[Chat] 获取SSE数据包, id: {}, content: {}, 已缓存chunk数量: {}", chunkId, content, chunkCache.size());
-            sendSseEvent("message", content);
+            sendSseEvent(SSE_MESSAGE, content);
         } catch (Exception e) {
             log.error("[Chat] sse send chunk data error", e);
         }
     }
 
-    private void onCompleteHandler() {
+    @Override
+    protected void onCompleteHandler() {
         try {
             log.info("[Chat] SSE流式对话完成, 完整内容: {}", fullContent);
-            // 获取并发送token使用信息
-            Usage usage = usageRef.get();
+            Usage usage = usageRef.get();  // 获取并发送 token 使用信息
             if (usage != null) {
                 JSONObject tokenInfo = new JSONObject();
                 tokenInfo.put("promptTokens", usage.getPromptTokens());
@@ -158,42 +137,33 @@ public class CustomModelClientHandler {
                 tokenInfo.put("totalTokens", usage.getTotalTokens());
                 log.info("Token usage - Prompt: {}, Completion: {}, Total: {}", usage.getPromptTokens(), usage.getCompletionTokens(), usage.getTotalTokens());
 
-                sendSseEvent("end", tokenInfo.toJSONString());  // 发送token信息
+                sendSseEvent(SSE_END, tokenInfo.toJSONString());  // 发送token信息
             } else {
                 log.warn("No token usage information available");
             }
 
-            sseEmitter.send(SSE_DONE_MSE);
+            sseEmitter.send(SSE_DONE);
             sseEmitter.complete();
 
             cache.evict(chatId);  // 清理对应chat id 下的本地缓存
             log.info("[Chat] 清理 chatId {} 的缓存", chatId);
         } catch (Exception e) {
-            log.error("sse close connection error", e);
+            log.error("[Chat] SSE 流式响应出错", e);
         }
     }
 
-    private void onFailureHandler(Throwable throwable) {
+    @Override
+    protected void onFailureHandler(Throwable throwable) {
         try {
-            log.error("SSE stream response fail");
+            log.error("[Chat] SSE 流式响应出错");
             sendSseEvent("error", throwable.getMessage());
         } catch (Exception e) {
-            log.error("sse send message error", e);
+            log.error("[Chat] 发送 SSE 数据失败", e);
         }
     }
 
-    private void sendSseEvent(String event,  String data) throws IOException {
-        SseEmitter.SseEventBuilder builder = SseEmitter.event()
-                .id(chunkId.toString())
-                .name(event)
-                .data(data)
-                .reconnectTime(3000L);
-
-        sseEmitter.send(builder.build());
-        chunkId++;
-    }
-
-    private List<ChatResponse> getCacheAfter(Integer chunkId) {
+    @Override
+    protected List<ChatResponse> getCacheAfter(Integer chunkId) {
         @SuppressWarnings("unchecked")
         List<Chunk> allChunks = cache.get(chatId, List.class);
 
@@ -213,11 +183,4 @@ public class CustomModelClientHandler {
         return responseList;
     }
 
-    @Data
-    @Builder
-    static class Chunk {
-        private Integer chunkId;
-
-        private ChatResponse chatResponse;
-    }
 }

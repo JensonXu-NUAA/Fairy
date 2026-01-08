@@ -43,9 +43,6 @@ public class ZhipuAiChatClientFactory implements ChatClientFactory {
         ChatMemory chatMemory = new InSqlMemory(repository);
         ModelConfig.Parameters params = modelConfig.getParameters();
 
-        log.info(modelConfig.getApiKey());
-        log.info(modelConfig.getBaseUrl());
-
         ZhiPuAiApi api = ZhiPuAiApi.builder()
                 .apiKey(modelConfig.getApiKey())
                 .baseUrl(modelConfig.getBaseUrl())
