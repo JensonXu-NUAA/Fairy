@@ -1,9 +1,6 @@
 package cn.nuaa.jensonxu.fairy.integration.chat.factory;
 
-import cn.nuaa.jensonxu.fairy.integration.chat.advisor.ChatMemoryAdvisor;
-import cn.nuaa.jensonxu.fairy.integration.chat.advisor.PersistenceMemoryAdvisor;
 import cn.nuaa.jensonxu.fairy.integration.chat.data.ModelConfig;
-import cn.nuaa.jensonxu.fairy.integration.chat.memory.InSqlMemory;
 import cn.nuaa.jensonxu.fairy.repository.mysql.chat.CustomChatMemoryRepository;
 
 import com.alibaba.cloud.ai.dashscope.api.DashScopeApi;
@@ -14,21 +11,17 @@ import com.alibaba.nacos.common.utils.StringUtils;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.memory.ChatMemory;
+import org.springframework.ai.tool.ToolCallbackProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Slf4j
 @Component
-public class DashScopeChatClientFactory implements ChatClientFactory {
-
-    private final CustomChatMemoryRepository repository;
-
-    private static final String DEFAULT_PROMPT = "你是一个博学的智能聊天助手，请根据用户提问回答！";
+public class DashScopeChatClientFactory extends BaseChatClientFactory {
 
     @Autowired
-    public DashScopeChatClientFactory(CustomChatMemoryRepository repository) {
-        this.repository = repository;
+    public DashScopeChatClientFactory(CustomChatMemoryRepository repository, ToolCallbackProvider provider) {
+        super(repository, provider);
     }
 
     @Override
@@ -42,7 +35,6 @@ public class DashScopeChatClientFactory implements ChatClientFactory {
             throw new IllegalArgumentException("DashScope API Key 不能为空");
         }
 
-        ChatMemory chatMemory = new InSqlMemory(repository);
         ModelConfig.Parameters params = modelConfig.getParameters();
 
         DashScopeApi api = DashScopeApi.builder()
@@ -50,24 +42,17 @@ public class DashScopeChatClientFactory implements ChatClientFactory {
                 .baseUrl(modelConfig.getBaseUrl())
                 .build();
         DashScopeChatOptions options = DashScopeChatOptions.builder()
-                .withModel(modelConfig.getModelName())
-                .withMaxToken(params.getMaxTokens())
-                .withTemperature(params.getTemperature())
-                .withTopP(params.getTopP())
+                .model(modelConfig.getModelName())
+                .maxToken(params.getMaxTokens())
+                .temperature(params.getTemperature())
+                .topP(params.getTopP())
                 .build();
         DashScopeChatModel model = DashScopeChatModel.builder()
                 .dashScopeApi(api)
                 .defaultOptions(options)
                 .build();
 
-        // 创建并返回 ChatClient
-        return ChatClient.builder(model)
-                .defaultSystem(DEFAULT_PROMPT)
-                .defaultAdvisors(
-                        new ChatMemoryAdvisor(chatMemory),
-                        new PersistenceMemoryAdvisor(chatMemory, modelConfig.getModelName())
-                )
-                .build();
+        return create(model, modelConfig);  // 创建并返回 ChatClient
 
     }
 

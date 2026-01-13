@@ -118,17 +118,17 @@ public class CustomModelClientHandler extends BaseChatModelClientHandler {
             chunkCache.add(chunk);
             cache.put(chatId, chunkCache);
             fullContent.append(content);
-            log.info("[Chat] 获取SSE数据包, id: {}, content: {}, 已缓存chunk数量: {}", chunkId, content, chunkCache.size());
+            log.info("[chat] 获取SSE数据包, id: {}, content: {}, 已缓存chunk数量: {}", chunkId, content, chunkCache.size());
             sendSseEvent(SSE_MESSAGE, content);
         } catch (Exception e) {
-            log.error("[Chat] sse send chunk data error", e);
+            log.error("[chat] sse send chunk data error", e);
         }
     }
 
     @Override
     protected void onCompleteHandler() {
         try {
-            log.info("[Chat] SSE流式对话完成, 完整内容: {}", fullContent);
+            log.info("[chat] SSE流式对话完成, 完整内容: {}", fullContent);
             Usage usage = usageRef.get();  // 获取并发送 token 使用信息
             if (usage != null) {
                 JSONObject tokenInfo = new JSONObject();
@@ -146,19 +146,19 @@ public class CustomModelClientHandler extends BaseChatModelClientHandler {
             sseEmitter.complete();
 
             cache.evict(chatId);  // 清理对应chat id 下的本地缓存
-            log.info("[Chat] 清理 chatId {} 的缓存", chatId);
+            log.info("[chat] 清理 chatId {} 的缓存", chatId);
         } catch (Exception e) {
-            log.error("[Chat] SSE 流式响应出错", e);
+            log.error("[chat] SSE 流式响应出错", e);
         }
     }
 
     @Override
     protected void onFailureHandler(Throwable throwable) {
         try {
-            log.error("[Chat] SSE 流式响应出错");
+            log.error("[chat] SSE 流式响应出错");
             sendSseEvent("error", throwable.getMessage());
         } catch (Exception e) {
-            log.error("[Chat] 发送 SSE 数据失败", e);
+            log.error("[chat] 发送 SSE 数据失败", e);
         }
     }
 

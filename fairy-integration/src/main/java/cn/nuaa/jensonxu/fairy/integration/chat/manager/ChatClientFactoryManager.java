@@ -1,7 +1,7 @@
 package cn.nuaa.jensonxu.fairy.integration.chat.manager;
 
 import cn.nuaa.jensonxu.fairy.integration.chat.data.ModelConfig;
-import cn.nuaa.jensonxu.fairy.integration.chat.factory.ChatClientFactory;
+import cn.nuaa.jensonxu.fairy.integration.chat.factory.BaseChatClientFactory;
 
 import com.alibaba.fastjson2.JSON;
 
@@ -25,12 +25,12 @@ import java.util.concurrent.ConcurrentHashMap;
 @Component
 public class ChatClientFactoryManager {
 
-    private final Map<String, ChatClientFactory> factoryMap = new ConcurrentHashMap<>();
+    private final Map<String, BaseChatClientFactory> factoryMap = new ConcurrentHashMap<>();
 
     @Autowired
-    public ChatClientFactoryManager(List<ChatClientFactory> factories) {
+    public ChatClientFactoryManager(List<BaseChatClientFactory> factories) {
         // 自动注册所有工厂实现
-        for (ChatClientFactory factory : factories) {
+        for (BaseChatClientFactory factory : factories) {
             factoryMap.put(factory.getProviderName().toLowerCase(), factory);
         }
     }
@@ -45,7 +45,7 @@ public class ChatClientFactoryManager {
         }
 
         // 查找支持该提供商的工厂
-        ChatClientFactory factory = findFactory(provider);
+        BaseChatClientFactory factory = findFactory(provider);
         if (factory == null) {
             throw new IllegalArgumentException(String.format("不支持的模型提供商: %s，可用提供商: %s", provider, factoryMap.keySet()));
         }
@@ -57,13 +57,8 @@ public class ChatClientFactoryManager {
     /**
      * 查找支持指定提供商的工厂
      */
-    private ChatClientFactory findFactory(String provider) {
-        for (ChatClientFactory factory : factoryMap.values()) {
-            if (factory.supports(provider)) {
-                return factory;
-            }
-        }
-        return null;
+    private BaseChatClientFactory findFactory(String provider) {
+        return factoryMap.get(provider.toLowerCase());
     }
 
     /**
@@ -78,7 +73,7 @@ public class ChatClientFactoryManager {
      */
     public List<String> getSupportedProviders() {
         return factoryMap.values().stream()
-                .map(ChatClientFactory::getProviderName)
+                .map(BaseChatClientFactory::getProviderName)
                 .toList();
     }
 }

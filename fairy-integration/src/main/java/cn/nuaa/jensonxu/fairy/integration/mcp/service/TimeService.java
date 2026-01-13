@@ -12,7 +12,7 @@ public class TimeService {
 
     @Tool(description = "Get the time of a specified city.")
     public String getTimeByTimeZone(@ToolParam(description = "Time zone id, such as Asia/Shanghai") String timeZoneId) {
-        log.info("[Time Service] The current time zone is {}", timeZoneId);
+        log.info("[time service] The current time zone is {}", timeZoneId);
         return String.format("The current time zone is %s and the current time is " + "%s", timeZoneId,
                 ZoneUtils.getTimeByZoneId(timeZoneId));
     }
