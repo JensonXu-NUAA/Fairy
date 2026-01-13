@@ -37,7 +37,7 @@ public class ChatService {
 
         log.info("[Chat] 开始流式聊天对话 - 用户ID: {}, 对话ID: {}, 消息: {}", customChatDTO.getUserId(), customChatDTO.getConversationId(), customChatDTO.getMessage());
 
-        SseEmitter sseEmitter = new SseEmitter(30 * 1000L);
+        SseEmitter sseEmitter = new SseEmitter(0L);
         setSseCallbacks(sseEmitter, customChatDTO.getChatId());
 
         try {

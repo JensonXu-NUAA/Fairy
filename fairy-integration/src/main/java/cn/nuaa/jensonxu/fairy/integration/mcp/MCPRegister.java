@@ -1,5 +1,6 @@
 package cn.nuaa.jensonxu.fairy.integration.mcp;
 
+import cn.nuaa.jensonxu.fairy.integration.mcp.service.PaperSearchService;
 import cn.nuaa.jensonxu.fairy.integration.mcp.service.TimeService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.tool.ToolCallbackProvider;
@@ -12,10 +13,12 @@ import org.springframework.context.annotation.Configuration;
 public class MCPRegister {
 
     @Bean
-    public ToolCallbackProvider tools(TimeService timeService) {
-        log.info("[nacos] 注册服务至nacos");
+    public ToolCallbackProvider allTools(TimeService timeService,
+                                         PaperSearchService paperSearchService) {
+        log.info("[nacos] 注册 MCP 工具至 nacos");
         return MethodToolCallbackProvider.builder()
-                .toolObjects(timeService)
+                .toolObjects(timeService,
+                             paperSearchService)
                 .build();
     }
 }
