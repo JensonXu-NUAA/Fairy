@@ -1,6 +1,11 @@
 spring:
+  main:
+    banner-mode: off
   application:
-    name: spica-integration
+    name: fairy-integration
+  config:
+    import:
+      - optional:nacos:llm_config.${spring.cloud.nacos.config.file-extension}?group=FAIRY_LLM_GROUP&refreshEnabled=true
   cloud:
     nacos:
       config:
@@ -8,7 +13,29 @@ spring:
         namespace: 45a75346-2ee8-446c-8bca-20db580102c4
         file-extension: json
         refresh-enabled: true
-        extension-configs:
-          - data-id: llm_config
-            group: FAIRY_LLM_GROUP
-            refresh: true
+        username: nacos
+        password: nacos
+  ai:
+    mcp:
+      server:
+        name: time-server
+        version: 1.0.0
+        type: ASYNC
+        instructions: "This reactive server provides time information tools and resources"
+        protocol: STREAMABLE
+        request-timeout: 20s
+        streamable-http:
+          mcp-endpoint: /mcp
+          keep-alive-interval: 30s
+          disallow-delete: false
+    alibaba:
+      mcp:
+        nacos:
+          namespace: 45a75346-2ee8-446c-8bca-20db580102c4
+          server-addr: 139.224.197.83:8848
+          username: nacos
+          password: nacos
+          register:
+            enabled: true
+            service-group: mcp-server        ## 指定分组名称
+            service-name: time-server        ## 指定服务名称

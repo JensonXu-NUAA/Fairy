@@ -16,7 +16,6 @@ import org.apache.commons.lang3.StringUtils;
 
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
@@ -32,11 +31,9 @@ public class ModelManager {
 
     private final ChatClientFactoryManager factoryManager;
 
-    @Value("${spring.cloud.nacos.config.extension-configs[0].data-id:llm_config}")
-    private String dataId;
+    private static final String DATA_ID = "llm_config";
 
-    @Value("${spring.cloud.nacos.config.extension-configs[0].group:FAIRY_LLM_GROUP}")
-    private String group;
+    private static final String GROUP_ID = "FAIRY_LLM_GROUP";
 
     private final Map<String, ModelConfig> models = new ConcurrentHashMap<>();
 
@@ -51,9 +48,9 @@ public class ModelManager {
         try {
             log.info("[nacos] 初始化大模型参数配置...");
             ConfigService configService = nacosConfigManager.getConfigService();
-            String configInfo = configService.getConfig(dataId, group, 5000);
+            String configInfo = configService.getConfig(DATA_ID, GROUP_ID, 5000);
             if(StringUtils.isBlank(configInfo)) {
-                log.warn("[nacos] 未能获取到模型配置，dataId: {}, group: {}", dataId, group);
+                log.warn("[nacos] 未能获取到模型配置，dataId: {}, group: {}", DATA_ID, GROUP_ID);
                 return;
             }
 
@@ -69,8 +66,8 @@ public class ModelManager {
 
             // 配置 nacos 监听器，用于动态更新模型配置
             configService.addListener(
-                    dataId,
-                    group,
+                    DATA_ID,
+                    GROUP_ID,
                     new Listener() {
                         @Override
                         public Executor getExecutor() {
