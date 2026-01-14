@@ -8,7 +8,7 @@ import org.springframework.stereotype.Service;
 
 @Slf4j
 @Service
-public class TimeService {
+public class TimeService implements McpToolService {
 
     @Tool(description = "Get the time of a specified city.")
     public String getTimeByTimeZone(@ToolParam(description = "Time zone id, such as Asia/Shanghai") String timeZoneId) {

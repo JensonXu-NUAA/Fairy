@@ -18,7 +18,7 @@ spring:
   ai:
     mcp:
       server:
-        name: time-server
+        name: fairy-mcp-server
         version: 1.0.0
         type: ASYNC
         instructions: "This reactive server provides time information tools and resources"
@@ -37,5 +37,5 @@ spring:
           password: nacos
           register:
             enabled: true
-            service-group: mcp-server        ## 指定分组名称
-            service-name: time-server        ## 指定服务名称
+            service-group: mcp-server             ## 指定分组名称
+            service-name: fairy-mcp-server        ## 指定服务名称
