@@ -1,5 +1,7 @@
 package cn.nuaa.jensonxu.fairy.integration.mcp.service;
 
+import cn.nuaa.jensonxu.fairy.integration.mcp.utils.ArxivUtils;
+
 import com.rometools.rome.feed.synd.SyndEntry;
 import com.rometools.rome.feed.synd.SyndFeed;
 import com.rometools.rome.io.SyndFeedInput;
@@ -20,7 +22,6 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -28,10 +29,6 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 @Service
 public class PaperSearchService {
-
-    private static final String ARXIV_QUERY_API = "https://export.arxiv.org/api/query";
-
-    private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
 
     private final OkHttpClient httpClient;
 
@@ -43,87 +40,10 @@ public class PaperSearchService {
                 .build();
     }
 
-    /**
-     * 执行HTTP请求到arXiv API
-     */
-    private SyndFeed executeArxivRequest(String urlString) throws Exception {
-        log.debug("[Paper Search Service] Request URL: {}", urlString);
-
-        Request request = new Request.Builder()
-                .url(urlString)
-                .addHeader("User-Agent", "MCP-Paper-Search-Tool/1.0")
-                .get()
-                .build();
-
-        try (Response response = httpClient.newCall(request).execute()) {
-            if (!response.isSuccessful()) {
-                log.error("[Paper Search Service] HTTP error code: {}", response.code());
-                throw new Exception(String.format("HTTP error: %d", response.code()));
-            }
-
-            ResponseBody responseBody = response.body();
-            if (responseBody == null) {
-                log.error("[Paper Search Service] Response body is null");
-                throw new Exception("Empty response from arXiv");
-            }
-
-            byte[] responseBytes = responseBody.bytes();
-            InputStream inputStream = new ByteArrayInputStream(responseBytes);
-            SyndFeedInput input = new SyndFeedInput();
-            return input.build(new XmlReader(inputStream));
-        }
-    }
-
-    /**
-     * 格式化作者信息
-     */
-    private String formatAuthors(SyndEntry entry) {
-        if (entry.getAuthors() == null || entry.getAuthors().isEmpty()) {
-            return "";
-        }
-        
-        List<String> authorNames = new ArrayList<>();
-        entry.getAuthors().forEach(author -> authorNames.add(author.getName()));
-        return String.join(", ", authorNames);
-    }
-
-    /**
-     * 清理和格式化摘要文本
-     */
-    private String formatAbstract(String description) {
-        if (description == null) {
-            return "";
-        }
-        
-        return description
-                .replaceAll("<[^>]*>", "") // 移除HTML标签
-                .replaceAll("\\s+", " ") // 合并多个空格
-                .trim();
-    }
-
-    /**
-     * 构建基本论文信息字符串
-     */
-    private void appendBasicPaperInfo(StringBuilder result, SyndEntry entry, int index) {
-        result.append(String.format("[%d] Title: %s\n", index + 1, entry.getTitle()));
-
-        String authors = formatAuthors(entry);
-        if (!authors.isEmpty()) {
-            result.append(String.format("    Authors: %s\n", authors));
-        }
-
-        if (entry.getPublishedDate() != null) {
-            result.append(String.format("    Published: %s\n", DATE_FORMAT.format(entry.getPublishedDate())));
-        }
-
-        if (entry.getLink() != null) {
-            result.append(String.format("    Link: %s\n", entry.getLink()));
-        }
-    }
-
     @Tool(description = "Search for academic papers on arXiv by keywords. Returns paper titles, authors, abstracts, and links. If you want to use this method, please use English.")
     public String searchPapers(
             @ToolParam(description = "Search keywords, e.g., 'machine learning', 'quantum computing'") String query,
+            @ToolParam(description = "Optional category filter: cs.AI (AI), cs.CL (NLP), cs.LG (ML), cs.DB (Database). Leave empty for all") String category,
             @ToolParam(description = "Maximum number of results to return, default is 10") Integer maxResults) {
 
         if (maxResults == null || maxResults <= 0) {
@@ -133,8 +53,18 @@ public class PaperSearchService {
         log.info("[Paper Search Service] Searching arXiv for: {}, max results: {}", query, maxResults);
 
         try {
+            // 构建搜索查询:在标题和摘要中搜索
             String encodedQuery = URLEncoder.encode(query, StandardCharsets.UTF_8);
-            String urlString = String.format("%s?search_query=all:%s&start=0&max_results=%d&sortBy=submittedDate&sortOrder=descending", ARXIV_QUERY_API, encodedQuery, maxResults);
+            StringBuilder searchQueryBuilder = new StringBuilder();
+            searchQueryBuilder.append("(ti:").append(encodedQuery)
+                    .append("+OR+abs:").append(encodedQuery).append(")");
+            if (category != null && !category.trim().isEmpty()) {
+                searchQueryBuilder.append("+AND+cat:").append(category.trim());  // 添加类别过滤
+            }
+            String urlString = String.format("%s?search_query=%s&start=0&max_results=%d&sortBy=relevance&sortOrder=descending",
+                    ArxivUtils.ARXIV_QUERY_API,
+                    searchQueryBuilder,
+                    maxResults);
 
             log.info("[Paper Search Service] Request URL: {}", urlString);
 
@@ -154,11 +84,11 @@ public class PaperSearchService {
 
             for (int i = 0; i < entries.size(); i++) {
                 SyndEntry entry = entries.get(i);
-                appendBasicPaperInfo(result, entry, i);
+                ArxivUtils.buildPaperInfo(result, entry, i);
 
                 // 摘要
                 String description = entry.getDescription() != null ? entry.getDescription().getValue() : null;
-                String abstractText = formatAbstract(description);
+                String abstractText = ArxivUtils.formatAbstract(description);
                 if (!abstractText.isEmpty()) {
                     result.append(String.format("    Abstract: %s\n", abstractText));
                 }
@@ -190,9 +120,7 @@ public class PaperSearchService {
             // 构建作者查询URL
             String encodedAuthor = URLEncoder.encode(authorName, StandardCharsets.UTF_8);
             String urlString = String.format("%s?search_query=au:%s&start=0&max_results=%d&sortBy=submittedDate&sortOrder=descending",
-                    ARXIV_QUERY_API, encodedAuthor, maxResults);
-
-            log.debug("[Paper Search Service] Request URL: {}", urlString);
+                    ArxivUtils.ARXIV_QUERY_API, encodedAuthor, maxResults);
 
             SyndFeed feed = executeArxivRequest(urlString);
             List<SyndEntry> entries = feed.getEntries();
@@ -213,7 +141,7 @@ public class PaperSearchService {
                 result.append(String.format("[%d] %s\n", i + 1, entry.getTitle()));
 
                 if (entry.getPublishedDate() != null) {
-                    result.append(String.format("    Published: %s\n", DATE_FORMAT.format(entry.getPublishedDate())));
+                    result.append(String.format("    Published: %s\n", ArxivUtils.DATE_FORMAT.format(entry.getPublishedDate())));
                 }
 
                 if (entry.getLink() != null) {
@@ -240,10 +168,7 @@ public class PaperSearchService {
 
         try {
             // 构建ID查询URL
-            String urlString = String.format("%s?id_list=%s", ARXIV_QUERY_API, arxivId);
-
-            log.debug("[Paper Search Service] Request URL: {}", urlString);
-
+            String urlString = String.format("%s?id_list=%s", ArxivUtils.ARXIV_QUERY_API, arxivId);
             SyndFeed feed = executeArxivRequest(urlString);
             List<SyndEntry> entries = feed.getEntries();
 
@@ -261,19 +186,19 @@ public class PaperSearchService {
             result.append(String.format("Title: %s\n\n", entry.getTitle()));
 
             // 作者信息
-            String authors = formatAuthors(entry);
+            String authors = ArxivUtils.formatAuthors(entry);
             if (!authors.isEmpty()) {
                 result.append(String.format("Authors: %s\n\n", authors));
             }
 
             // 发布日期
             if (entry.getPublishedDate() != null) {
-                result.append(String.format("Published: %s\n", DATE_FORMAT.format(entry.getPublishedDate())));
+                result.append(String.format("Published: %s\n", ArxivUtils.DATE_FORMAT.format(entry.getPublishedDate())));
             }
 
             // 更新日期
             if (entry.getUpdatedDate() != null) {
-                result.append(String.format("Updated: %s\n\n", DATE_FORMAT.format(entry.getUpdatedDate())));
+                result.append(String.format("Updated: %s\n\n", ArxivUtils.DATE_FORMAT.format(entry.getUpdatedDate())));
             }
 
             // 分类
@@ -290,7 +215,7 @@ public class PaperSearchService {
 
             // 完整摘要
             String description = entry.getDescription() != null ? entry.getDescription().getValue() : null;
-            String abstractText = formatAbstract(description);
+            String abstractText = ArxivUtils.formatAbstract(description);
             if (!abstractText.isEmpty()) {
                 result.append(String.format("Abstract:\n%s\n\n", abstractText));
             }
@@ -301,6 +226,37 @@ public class PaperSearchService {
         } catch (Exception e) {
             log.error("[Paper Search Service] Error getting paper details: {}", e.getMessage(), e);
             return String.format("Error getting paper details: %s", e.getMessage());
+        }
+    }
+
+    /**
+     * 执行HTTP请求到arxiv
+     */
+    private SyndFeed executeArxivRequest(String urlString) throws Exception {
+        log.debug("[Paper Search Service] Request URL: {}", urlString);
+
+        Request request = new Request.Builder()
+                .url(urlString)
+                .addHeader("User-Agent", "MCP-Paper-Search-Tool/1.0")
+                .get()
+                .build();
+
+        try (Response response = httpClient.newCall(request).execute()) {
+            if (!response.isSuccessful()) {
+                log.error("[Paper Search Service] HTTP error code: {}", response.code());
+                throw new Exception(String.format("HTTP error: %d", response.code()));
+            }
+
+            ResponseBody responseBody = response.body();
+            if (responseBody == null) {
+                log.error("[Paper Search Service] Response body is null");
+                throw new Exception("Empty response from arXiv");
+            }
+
+            byte[] responseBytes = responseBody.bytes();
+            InputStream inputStream = new ByteArrayInputStream(responseBytes);
+            SyndFeedInput input = new SyndFeedInput();
+            return input.build(new XmlReader(inputStream));
         }
     }
 }
