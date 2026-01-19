@@ -29,7 +29,7 @@ public class DeepSeekChatClientFactory extends BaseChatClientFactory{
     @Override
     public ChatClient createChatClient(ModelConfig modelConfig) {
         if (!StringUtils.hasText(modelConfig.getApiKey())) {
-            throw new IllegalArgumentException("[Open AI] API Key 不能为空");
+            throw new IllegalArgumentException("[DeepSeek] API Key 不能为空");
         }
 
         ModelConfig.Parameters params = modelConfig.getParameters();
