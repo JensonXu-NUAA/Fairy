@@ -13,6 +13,11 @@ spring:
       chat:
         options:
           model: glm-4.5-flash
+    deepseek:
+      api-key: sk-3e92167fab9f415b829c06ba2b9c3660
+      chat:
+        options:
+          model: deepseek-chat
 
   datasource:
     url: jdbc:mysql://139.224.197.83:3306/fairy?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
