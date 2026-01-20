@@ -33,7 +33,7 @@ public class ArxivUtils {
             return "";
         }
 
-        return description.replaceAll("<[^>]*>", "") // 移除HTML标签
+        return description.replaceAll("<[^>]*>", "") // 移除 HTML 标签
                 .replaceAll("\\s+", " ") // 合并多个空格
                 .trim();
     }

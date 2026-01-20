@@ -28,7 +28,7 @@ import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Service
-public class PaperSearchService implements McpToolService{
+public class PaperSearchService implements McpToolService {
 
     private final OkHttpClient httpClient;
 
