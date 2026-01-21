@@ -28,3 +28,12 @@ spring:
 server:
   port: 12100
   shutdown: graceful
+
+minio:
+  endpoint: http://139.224.197.83:9000
+  access-key: OMJDLUJTWTJM83Q4IGWQ
+  secret-key: XaZwXmVL+lOXKsDwAWy4ljBnp4S9+rD3261mZAbD
+  bucket-name: file-upload
+
+app:
+  base-url: localhost:12100
