@@ -4,10 +4,10 @@ import cn.nuaa.jensonxu.fairy.integration.chat.handler.CustomModelClientHandler;
 import cn.nuaa.jensonxu.fairy.integration.chat.data.CustomChatDTO;
 
 import cn.nuaa.jensonxu.fairy.integration.chat.manager.ModelManager;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.CacheManager;
 import org.springframework.stereotype.Service;
 
@@ -17,17 +17,11 @@ import java.util.UUID;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class ChatService {
 
     private final CacheManager cacheManager;
-
     private final ModelManager modelManager;
-
-    @Autowired
-    public ChatService(ModelManager modelManager, CacheManager cacheManager) {
-        this.modelManager = modelManager;
-        this.cacheManager = cacheManager;
-    }
 
     public SseEmitter streamChat(CustomChatDTO customChatDTO) {
         customChatDTO.setChatId(UUID.randomUUID().toString());
