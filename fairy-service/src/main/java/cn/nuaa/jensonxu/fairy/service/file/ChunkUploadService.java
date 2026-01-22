@@ -25,8 +25,7 @@ public class ChunkUploadService {
     public void markChunkUploaded(String fileMd5, int chunkIndex) {
         String key = CHUNK_STATUS_PREFIX + fileMd5;
         redisUtil.setBit(key, chunkIndex, true);
-        // 设置过期时间，防止垃圾数据堆积
-        redisUtil.expire(key, DEFAULT_EXPIRE_HOURS, TimeUnit.HOURS);
+        redisUtil.expire(key, DEFAULT_EXPIRE_HOURS, TimeUnit.HOURS);  // 设置过期时间，防止垃圾数据堆积
     }
 
     /**
