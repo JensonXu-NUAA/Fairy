@@ -33,6 +33,12 @@ spring:
           min-idle: 2      # 连接池最小空闲连接数
           max-wait: -1ms   # 连接池最大阻塞等待时间，-1表示不限制
 
+  servlet:
+    multipart:
+      max-file-size: 10MB        # 单个文件最大大小（支持1MB分片）
+      max-request-size: 10MB    # 单次请求最大大小
+      enabled: true             # 是否启用 multipart 上传
+
   datasource:
     url: jdbc:mysql://139.224.197.83:3306/fairy?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
     username: user

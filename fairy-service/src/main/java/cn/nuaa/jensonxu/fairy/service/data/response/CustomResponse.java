@@ -1,4 +1,4 @@
-package cn.nuaa.jensonxu.fairy.web.response;
+package cn.nuaa.jensonxu.fairy.service.data.response;
 
 import lombok.Data;
 
@@ -48,6 +48,13 @@ public class CustomResponse<T> {
      */
     public static <T> CustomResponse<T> success(String message) {
         return new CustomResponse<>(200, message, null);
+    }
+
+    /**
+     * 成功响应（自定义消息 + 数据）
+     */
+    public static <T> CustomResponse<T> success(String message, T data) {
+        return new CustomResponse<>(200, message, data);
     }
 
     /**
