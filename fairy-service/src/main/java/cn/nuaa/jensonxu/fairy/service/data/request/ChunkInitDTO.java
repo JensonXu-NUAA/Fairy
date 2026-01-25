@@ -8,6 +8,13 @@ import jakarta.validation.constraints.NotNull;
 
 @Data
 public class ChunkInitDTO {
+
+    /**
+     * 用户id
+     */
+    @NotBlank(message = "用户id不能为空")
+    private String userId;
+
     /**
      * 文件名（原始文件名）
      */
@@ -35,7 +42,7 @@ public class ChunkInitDTO {
     private Integer totalChunks;
 
     /**
-     * 分片大小（字节，默认1MB = 1048576字节）
+     * 分片大小（字节，默认1MB = 1048576 字节）
      */
     private Long chunkSize = 1048576L;
 }

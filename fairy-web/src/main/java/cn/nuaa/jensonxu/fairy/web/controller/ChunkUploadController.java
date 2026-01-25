@@ -13,6 +13,7 @@ import cn.nuaa.jensonxu.fairy.service.data.response.vo.ChunkUploadInitVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -55,12 +56,16 @@ public class ChunkUploadController {
      * @return 上传结果
      */
     @PostMapping("/upload")
-    public CustomResponse<ChunkUploadResultVO> uploadChunk(@RequestParam("fileMd5") String fileMd5,
+    public CustomResponse<ChunkUploadResultVO> uploadChunk(@RequestParam("userId") String userId,
+                                                           @RequestParam("fileMd5") String fileMd5,
                                                            @RequestParam("chunkIndex") Integer chunkIndex,
                                                            @RequestParam("file") MultipartFile file) {
         try {
             // 参数校验
-            if (fileMd5 == null || fileMd5.trim().isEmpty()) {
+            if (StringUtils.isEmpty(userId)) {
+                return CustomResponse.error("用户id不能为空");
+            }
+            if (StringUtils.isBlank(fileMd5)) {
                 return CustomResponse.error("文件MD5不能为空");
             }
             if (chunkIndex == null || chunkIndex < 0) {
@@ -70,9 +75,11 @@ public class ChunkUploadController {
                 return CustomResponse.error("分片文件不能为空");
             }
 
-            log.info("[chunk] 接收到上传请求, MD5: {}, 分片索引: {}, 文件大小: {}字节", fileMd5, chunkIndex, file.getSize());
-            ChunkUploadResultVO result = chunkUploadService.uploadChunk(fileMd5, chunkIndex, file);  // 执行上传
-            log.info("[chunk] 上传成功, MD5: {}, 分片: {}, 进度: {}%, 是否完成: {}", result.getFileMd5(), result.getChunkIndex(), result.getUploadProgress(), result.getIsComplete());
+            log.info("[chunk] 接收到上传请求, user id: {}, MD5: {}, 分片索引: {}, 文件大小: {}字节", userId, fileMd5, chunkIndex, file.getSize());
+            ChunkUploadResultVO result = chunkUploadService.uploadChunk(userId, fileMd5, chunkIndex, file);  // 执行上传
+            log.info("[chunk] 上传成功, user id: {}, MD5: {}, 分片: {}, 进度: {}%, 是否完成: {}",
+                    userId,
+                    result.getFileMd5(), result.getChunkIndex(), result.getUploadProgress(), result.getIsComplete());
 
             if (result.getIsComplete()) {
                 return CustomResponse.build(200, "分片上传完成，所有分片已就绪，可调用合并接口", result);  // 如果上传完成，提示用户可以调用合并接口
@@ -80,27 +87,36 @@ public class ChunkUploadController {
             return CustomResponse.success(result);
 
         } catch (Exception e) {
-            log.error("[chunk] 上传失败, MD5: {}, 分片索引: {}", fileMd5, chunkIndex, e);
+            log.error("[chunk] 上传失败, user id: {}, MD5: {}, 分片索引: {}", userId, fileMd5, chunkIndex, e);
             return CustomResponse.error("上传失败: " + e.getMessage());
         }
     }
 
     /**
      * 查询分片上传状态
-     * @param fileMd5 文件MD5
+     * @param request 文件MD5
      * @return 分片状态详情
      */
     @GetMapping("/status")
-    public CustomResponse<ChunkStatusVO> queryChunkStatus(@Validated @RequestBody QueryChunkStatusDTO fileMd5) {
+    public CustomResponse<ChunkStatusVO> queryChunkStatus(@Validated @RequestBody QueryChunkStatusDTO request) {
         try {
-            log.info("[chunk] 分片状态查询, 接收到查询请求, MD5: {}", fileMd5.getFileMd5());
+            String userId = request.getUserId();
+            String fileMd5 = request.getFileMd5();
 
             // 参数校验
-            if (fileMd5.getFileMd5().trim().isEmpty()) {
+            if (StringUtils.isEmpty(userId)) {
+                return CustomResponse.error("用户id不能为空");
+            }
+            if (StringUtils.isEmpty(fileMd5)) {
                 return CustomResponse.error("文件MD5不能为空");
             }
-            ChunkStatusVO statusVO = chunkUploadService.queryChunkStatus(fileMd5.getFileMd5());  // 查询状态
-            log.info("[chunk] 分片状态查询, 查询成功, MD5: {}, 已上传: {}/{}, 进度: {}%", statusVO.getFileMd5(), statusVO.getUploadedCount(), statusVO.getTotalChunks(), statusVO.getUploadProgress());
+
+            log.info("[chunk] 分片状态查询, 接收到查询请求, userId, {} MD5: {}", userId, fileMd5);
+            ChunkStatusVO statusVO = chunkUploadService.queryChunkStatus(userId, fileMd5);  // 查询状态
+            log.info("[chunk] 分片状态查询, 查询成功, user id: {}, MD5: {}, 已上传: {}/{}, 进度: {}%",
+                    userId,
+                    fileMd5,
+                    statusVO.getUploadedCount(), statusVO.getTotalChunks(), statusVO.getUploadProgress());
 
             // 根据完成状态返回不同提示信息
             if (statusVO.getIsComplete()) {
@@ -116,7 +132,7 @@ public class ChunkUploadController {
             }
 
         } catch (Exception e) {
-            log.error("[chunk] 分片状态查询, 查询失败, MD5: {}", fileMd5.getFileMd5(), e);
+            log.error("[chunk] 分片状态查询, 查询失败, MD5: {}", request.getFileMd5(), e);
             return CustomResponse.error("查询失败: " + e.getMessage());
         }
     }
@@ -129,18 +145,20 @@ public class ChunkUploadController {
     @PostMapping("/merge")
     public CustomResponse<ChunkMergeResultVO> mergeChunks(@Validated @RequestBody ChunkMergeDTO request) {
         try {
-            log.info("[chunk] 接收到合并请求, MD5: {}", request.getFileMd5());
+            String userId = request.getUserId();
+            String fileMd5 = request.getFileMd5();
 
             // 参数校验
-            if (request.getFileMd5() == null || request.getFileMd5().trim().isEmpty()) {
+            if (StringUtils.isEmpty(userId)) {
+                return CustomResponse.error("用户id不能为空");
+            }
+            if (StringUtils.isEmpty(fileMd5)) {
                 return CustomResponse.error("文件MD5不能为空");
             }
 
-            ChunkMergeResultVO result = chunkUploadService.mergeChunks(request.getFileMd5());  // 执行合并
-            log.info("[chunk] 文件合并成功, MD5: {}, 最终路径: {}, 耗时: {}ms", result.getFileMd5(), result.getFinalFilePath(), result.getMergeDuration());
-
+            log.info("[chunk] 接收到合并请求, user id: {}, MD5: {}", userId, fileMd5);
+            ChunkMergeResultVO result = chunkUploadService.mergeChunks(userId, request.getFileMd5());  // 执行合并
             return CustomResponse.success("文件合并成功", result);
-
         } catch (Exception e) {
             log.error("[chunk] 文件合并失败, MD5: {}", request.getFileMd5(), e);
             return CustomResponse.error("合并失败: " + e.getMessage());

@@ -53,9 +53,9 @@ public class FileService {
      * @param chunkIndex 分片索引
      * @return 分片在 MinIO 中的存储路径
      */
-    public String uploadChunk(MultipartFile chunkFile, String fileMd5, int chunkIndex) throws Exception {
+    public String uploadChunk(MultipartFile chunkFile, String userId, String fileMd5, int chunkIndex) throws Exception {
         ensureBucketExists();  // 确保 bucket 存在
-        String chunkPath = String.format("chunks/%s/chunk_%d", fileMd5, chunkIndex);  // 构建分片存储路径
+        String chunkPath = String.format("chunks/%s/%s/chunk_%d", userId, fileMd5, chunkIndex);  // 构建分片存储路径
 
         // 上传分片到 MinIO
         minioClient.putObject(
@@ -78,17 +78,17 @@ public class FileService {
      * @param totalChunks 总分片数
      * @return 合并后的文件路径
      */
-    public String mergeChunks(String fileMd5, String fileName, int totalChunks) throws Exception {
+    public String mergeChunks(String userId, String fileMd5, String fileName, int totalChunks) throws Exception {
         ensureBucketExists();  // 确保 bucket 存在
 
         // 1. 构建分片路径列表
         List<ComposeSource> sources = new ArrayList<>();
         for(int i = 0; i < totalChunks; i++) {
-            if(!chunkExists(fileMd5, i)) {
+            if(!chunkExists(userId, fileMd5, i)) {
                 throw new RuntimeException(String.format("分片 %d 不存在，无法合并", i));  // 验证分片是否存在
             }
 
-            String chunkPath = String.format("chunks/%s/chunk_%d", fileMd5, i);
+            String chunkPath = String.format("chunks/%s/%s/chunk_%d", userId, fileMd5, i);
             sources.add(
                     ComposeSource.builder()
                             .bucket(minioProperties.getBucketName())
@@ -98,7 +98,7 @@ public class FileService {
         }
 
 
-        String finalFilePath = String.format("files/%s/%s", fileMd5, fileName);  // 2. 构建最终文件路径
+        String finalFilePath = String.format("files/%s/%s", userId, fileName);  // 2. 构建最终文件路径
         minioClient.composeObject(
                 ComposeObjectArgs.builder()
                         .bucket(minioProperties.getBucketName())
@@ -107,29 +107,31 @@ public class FileService {
                         .build()
         );
 
-        log.info("[minio] 文件合并成功, MD5: {}, 最终路径: {}, 分片数: {}", fileMd5, finalFilePath, totalChunks);
+        log.info("[minio] 文件合并成功, user id: {}, MD5: {}, 最终路径: {}, 分片数: {}", userId, fileMd5, finalFilePath, totalChunks);
         return finalFilePath;
     }
 
         /**
          * 检查分片文件是否存在
+         * @param userId 用户id
          * @param fileMd5 文件MD5
          * @param chunkIndex 分片索引
          * @return 是否存在
          */
-    public boolean chunkExists(String fileMd5, int chunkIndex) {
-        String chunkPath = String.format("chunks/%s/chunk_%d", fileMd5, chunkIndex);
+    public boolean chunkExists(String userId, String fileMd5, int chunkIndex) {
+        String chunkPath = String.format("chunks/%s/%s/chunk_%d", userId, fileMd5, chunkIndex);
         return fileExists(chunkPath);
     }
 
     /**
      * 删除分片文件夹（合并完成后清理）
+     * @param userId 用户id
      * @param fileMd5 文件MD5
      * @return 删除的分片数量
      */
-    public Integer deleteChunkFolder(String fileMd5) {
+    public Integer deleteChunkFolder(String userId, String fileMd5) {
         int deletedCount = 0;
-        String chunkPrefix = String.format("chunks/%s/", fileMd5);
+        String chunkPrefix = String.format("chunks/%s/%s/", userId, fileMd5);
 
         try {
             // 列出该文件夹下的所有分片
@@ -146,9 +148,9 @@ public class FileService {
                 deleteFile(item.objectName());
                 deletedCount++;
             }
-            log.info("[minio] 分片文件夹清理完成, MD5: {}, 删除数量: {}", fileMd5, deletedCount);
+            log.info("[minio] 分片文件夹清理完成, user id: {}, MD5: {}, 删除数量: {}", userId, fileMd5, deletedCount);
         } catch (Exception e) {
-            log.error("[minio] 分片文件夹清理失败, MD5: {}", fileMd5, e);
+            log.error("[minio] 分片文件夹清理失败, user id: {}, MD5: {}", userId, fileMd5, e);
         }
 
         return deletedCount;
@@ -166,12 +168,13 @@ public class FileService {
 
     /**
      * 删除分片文件
+     * @param userId 用户id
      * @param fileMd5 文件MD5
      * @param chunkIndex 分片索引
      * @return 是否删除成功
      */
-    public boolean deleteChunk(String fileMd5, int chunkIndex) {
-        String chunkPath = String.format("chunks/%s/chunk_%d", fileMd5, chunkIndex);
+    public boolean deleteChunk(String userId, String fileMd5, int chunkIndex) {
+        String chunkPath = String.format("chunks/%s/%s/chunk_%d", userId, fileMd5, chunkIndex);
         return deleteFile(chunkPath);
     }
 

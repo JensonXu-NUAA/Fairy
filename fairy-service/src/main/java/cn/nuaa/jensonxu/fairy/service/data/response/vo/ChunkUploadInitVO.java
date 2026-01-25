@@ -12,6 +12,11 @@ import lombok.NoArgsConstructor;
 public class ChunkUploadInitVO {
 
     /**
+     * 用户id
+     */
+    private String userId;
+
+    /**
      * 文件MD5（文件唯一标识）
      */
     private String fileMd5;
