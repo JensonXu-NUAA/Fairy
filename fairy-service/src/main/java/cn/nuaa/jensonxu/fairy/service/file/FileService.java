@@ -49,6 +49,7 @@ public class FileService {
     /**
      * 上传分片到 MinIO
      * @param chunkFile 分片文件
+     * @param userId 用户id
      * @param fileMd5 文件MD5
      * @param chunkIndex 分片索引
      * @return 分片在 MinIO 中的存储路径
@@ -73,6 +74,7 @@ public class FileService {
 
     /**
      * 合并分片文件为完整文件
+     * @param userId 用户id
      * @param fileMd5 文件MD5
      * @param fileName 目标文件名
      * @param totalChunks 总分片数
