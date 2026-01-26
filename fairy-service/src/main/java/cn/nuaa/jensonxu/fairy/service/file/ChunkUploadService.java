@@ -1,18 +1,22 @@
 package cn.nuaa.jensonxu.fairy.service.file;
 
+import cn.nuaa.jensonxu.fairy.repository.mysql.data.FileUploadRecordDO;
 import cn.nuaa.jensonxu.fairy.repository.redis.RedisUtil;
 import cn.nuaa.jensonxu.fairy.service.data.request.ChunkInitDTO;
 import cn.nuaa.jensonxu.fairy.service.data.response.vo.ChunkMergeResultVO;
 import cn.nuaa.jensonxu.fairy.service.data.response.vo.ChunkStatusVO;
 import cn.nuaa.jensonxu.fairy.service.data.response.vo.ChunkUploadInitVO;
 import cn.nuaa.jensonxu.fairy.service.data.response.vo.ChunkUploadResultVO;
+import cn.nuaa.jensonxu.fairy.repository.mysql.FileUploadRecordRepository;
 
+import io.minio.StatObjectResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -26,6 +30,7 @@ public class ChunkUploadService {
 
     private final RedisUtil redisUtil;
     private final FileService fileService;
+    private final FileUploadRecordRepository fileUploadRecordRepository;
     private static final String CHUNK_STATUS_PREFIX = "upload:chunk:";
     private static final String FILE_META_PREFIX = "upload:meta:";
     private static final long DEFAULT_EXPIRE_HOURS = 24;  // 默认过期时间24小时
@@ -212,18 +217,31 @@ public class ChunkUploadService {
 
 
             String finalFilePath = fileService.mergeChunks(userId, fileMd5, fileName, totalChunks);  // 3. 调用FileService进行合并
-            long actualFileSize = fileService.getFileSize(finalFilePath);  // 4. 获取合并后文件的实际大小
+            StatObjectResponse fileMetadata = fileService.getFileMetadata(finalFilePath);
+            long actualFileSize = fileMetadata.size();  // 4. 获取合并后文件的实际大小
             if (actualFileSize != fileSize) {
                 log.warn("[chunk] 文件大小不一致, 预期: {} 字节, 实际: {} 字节", fileSize, actualFileSize);  // 5. 验证文件大小
             }
 
-            cleanupFileData(userId, fileMd5);  // 6. 清理Redis中的临时数据
+            FileUploadRecordDO fileUploadRecordDO = FileUploadRecordDO.builder()
+                    .fileMd5(fileMd5)
+                    .fileName(fileName)
+                    .fileSize(actualFileSize)
+                    .filePath(finalFilePath)
+                    .userId(userId)
+                    .createTime(LocalDateTime.now())
+                    .isDeleted(0)
+                    .contentType(fileMetadata.contentType())
+                    .build();
+            fileUploadRecordRepository.insert(fileUploadRecordDO);  // 6. 生成数据库记录
+
+            cleanupFileData(userId, fileMd5);  // 7. 清理Redis中的临时数据
             log.info("[chunk] Redis临时数据已清理, user id: {}, MD5: {}", userId, fileMd5);
 
-            int deletedChunks = fileService.deleteChunkFolder(userId, fileMd5);  // 7. 异步删除分片文件（可以发送MQ消息，这里先直接删除）
+            int deletedChunks = fileService.deleteChunkFolder(userId, fileMd5);  // 8. 异步删除分片文件（可以发送MQ消息，这里先直接删除）
             log.info("[chunk] 分片文件已清理, 删除数量: {}", deletedChunks);
 
-            long mergeDuration = System.currentTimeMillis() - startTime;  // 8. 计算合并耗时
+            long mergeDuration = System.currentTimeMillis() - startTime;  // 9. 计算合并耗时
             log.info("[chunk] 文件合并成功, user id: {}, MD5: {}, 最终路径: {}, 耗时: {} ms", userId, fileMd5, finalFilePath, mergeDuration);
 
             return ChunkMergeResultVO.builder()

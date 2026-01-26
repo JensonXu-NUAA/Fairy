@@ -1,7 +1,7 @@
 package cn.nuaa.jensonxu.fairy.integration.chat.factory;
 
 import cn.nuaa.jensonxu.fairy.integration.chat.data.ModelConfig;
-import cn.nuaa.jensonxu.fairy.repository.mysql.chat.CustomChatMemoryRepository;
+import cn.nuaa.jensonxu.fairy.repository.mysql.CustomChatMemoryRepository;
 import com.alibaba.nacos.common.utils.StringUtils;
 import lombok.extern.slf4j.Slf4j;
 
