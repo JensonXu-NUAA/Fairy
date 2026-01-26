@@ -1,6 +1,6 @@
 package cn.nuaa.jensonxu.fairy.integration.chat.handler;
 
-import cn.nuaa.jensonxu.fairy.integration.chat.data.CustomChatDTO;
+import cn.nuaa.jensonxu.fairy.common.data.llm.CustomChatDTO;
 
 import lombok.Builder;
 import lombok.Data;

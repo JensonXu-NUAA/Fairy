@@ -1,7 +1,7 @@
 package cn.nuaa.jensonxu.fairy.integration.chat.memory;
 
-import cn.nuaa.jensonxu.fairy.repository.mysql.CustomChatMemoryRepository;
-import cn.nuaa.jensonxu.fairy.repository.mysql.data.CustomChatMessageDO;
+import cn.nuaa.jensonxu.fairy.common.repository.mysql.CustomChatMemoryRepository;
+import cn.nuaa.jensonxu.fairy.common.repository.mysql.data.CustomChatMessageDO;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.ai.chat.memory.ChatMemory;

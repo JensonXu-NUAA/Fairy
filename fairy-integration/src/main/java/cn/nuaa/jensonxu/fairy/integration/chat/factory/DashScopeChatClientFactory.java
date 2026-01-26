@@ -1,7 +1,7 @@
 package cn.nuaa.jensonxu.fairy.integration.chat.factory;
 
-import cn.nuaa.jensonxu.fairy.integration.chat.data.ModelConfig;
-import cn.nuaa.jensonxu.fairy.repository.mysql.CustomChatMemoryRepository;
+import cn.nuaa.jensonxu.fairy.common.data.llm.ModelConfig;
+import cn.nuaa.jensonxu.fairy.common.repository.mysql.CustomChatMemoryRepository;
 
 import com.alibaba.cloud.ai.dashscope.api.DashScopeApi;
 import com.alibaba.cloud.ai.dashscope.chat.DashScopeChatModel;

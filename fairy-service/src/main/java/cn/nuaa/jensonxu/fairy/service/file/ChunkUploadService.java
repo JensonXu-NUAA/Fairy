@@ -1,13 +1,13 @@
 package cn.nuaa.jensonxu.fairy.service.file;
 
-import cn.nuaa.jensonxu.fairy.repository.mysql.data.FileUploadRecordDO;
-import cn.nuaa.jensonxu.fairy.repository.redis.RedisUtil;
-import cn.nuaa.jensonxu.fairy.service.data.request.ChunkInitDTO;
-import cn.nuaa.jensonxu.fairy.service.data.response.vo.ChunkMergeResultVO;
-import cn.nuaa.jensonxu.fairy.service.data.response.vo.ChunkStatusVO;
-import cn.nuaa.jensonxu.fairy.service.data.response.vo.ChunkUploadInitVO;
-import cn.nuaa.jensonxu.fairy.service.data.response.vo.ChunkUploadResultVO;
-import cn.nuaa.jensonxu.fairy.repository.mysql.FileUploadRecordRepository;
+import cn.nuaa.jensonxu.fairy.common.repository.mysql.data.FileUploadRecordDO;
+import cn.nuaa.jensonxu.fairy.common.repository.redis.RedisUtil;
+import cn.nuaa.jensonxu.fairy.common.data.file.request.ChunkInitDTO;
+import cn.nuaa.jensonxu.fairy.common.data.file.response.vo.ChunkMergeResultVO;
+import cn.nuaa.jensonxu.fairy.common.data.file.response.vo.ChunkStatusVO;
+import cn.nuaa.jensonxu.fairy.common.data.file.response.vo.ChunkUploadInitVO;
+import cn.nuaa.jensonxu.fairy.common.data.file.response.vo.ChunkUploadResultVO;
+import cn.nuaa.jensonxu.fairy.common.repository.mysql.FileUploadRecordRepository;
 
 import io.minio.StatObjectResponse;
 import lombok.RequiredArgsConstructor;

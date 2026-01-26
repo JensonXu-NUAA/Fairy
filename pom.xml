@@ -20,7 +20,7 @@
     <modules>
         <module>fairy-web</module>
         <module>fairy-service</module>
-        <module>fairy-repository</module>
+        <module>fairy-common</module>
         <module>fairy-integration</module>
     </modules>
 

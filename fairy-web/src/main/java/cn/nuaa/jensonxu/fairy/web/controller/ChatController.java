@@ -1,7 +1,7 @@
 package cn.nuaa.jensonxu.fairy.web.controller;
 
 import cn.nuaa.jensonxu.fairy.service.chat.ChatService;
-import cn.nuaa.jensonxu.fairy.integration.chat.data.CustomChatDTO;
+import cn.nuaa.jensonxu.fairy.common.data.llm.CustomChatDTO;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;

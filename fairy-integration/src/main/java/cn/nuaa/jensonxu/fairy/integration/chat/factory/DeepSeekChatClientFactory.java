@@ -1,7 +1,7 @@
 package cn.nuaa.jensonxu.fairy.integration.chat.factory;
 
-import cn.nuaa.jensonxu.fairy.integration.chat.data.ModelConfig;
-import cn.nuaa.jensonxu.fairy.repository.mysql.CustomChatMemoryRepository;
+import cn.nuaa.jensonxu.fairy.common.data.llm.ModelConfig;
+import cn.nuaa.jensonxu.fairy.common.repository.mysql.CustomChatMemoryRepository;
 
 import com.alibaba.nacos.common.utils.StringUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component;
 
 @Slf4j
 @Component
-public class DeepSeekChatClientFactory extends BaseChatClientFactory{
+public class DeepSeekChatClientFactory extends BaseChatClientFactory {
 
     protected DeepSeekChatClientFactory(CustomChatMemoryRepository repository, ToolCallbackProvider provider) {
         super(repository, provider);

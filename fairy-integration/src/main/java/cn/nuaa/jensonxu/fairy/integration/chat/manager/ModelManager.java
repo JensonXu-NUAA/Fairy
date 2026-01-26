@@ -1,6 +1,6 @@
 package cn.nuaa.jensonxu.fairy.integration.chat.manager;
 
-import cn.nuaa.jensonxu.fairy.integration.chat.data.ModelConfig;
+import cn.nuaa.jensonxu.fairy.common.data.llm.ModelConfig;
 
 import com.alibaba.cloud.nacos.NacosConfigManager;
 import com.alibaba.nacos.api.config.ConfigService;

@@ -5,7 +5,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication(scanBasePackages = "cn.nuaa.jensonxu")
-@MapperScan("cn.nuaa.jensonxu.fairy.repository.mysql.mapper")
+@MapperScan("cn.nuaa.jensonxu.fairy.common.repository.mysql.mapper")
 public class FairyWebApplication {
 
 	public static void main(String[] args) {

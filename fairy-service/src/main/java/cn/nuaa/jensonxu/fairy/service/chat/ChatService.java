@@ -1,7 +1,7 @@
 package cn.nuaa.jensonxu.fairy.service.chat;
 
 import cn.nuaa.jensonxu.fairy.integration.chat.handler.CustomModelClientHandler;
-import cn.nuaa.jensonxu.fairy.integration.chat.data.CustomChatDTO;
+import cn.nuaa.jensonxu.fairy.common.data.llm.CustomChatDTO;
 
 import cn.nuaa.jensonxu.fairy.integration.chat.manager.ModelManager;
 import lombok.RequiredArgsConstructor;

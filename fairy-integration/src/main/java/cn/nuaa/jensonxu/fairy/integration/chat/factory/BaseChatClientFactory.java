@@ -2,9 +2,9 @@ package cn.nuaa.jensonxu.fairy.integration.chat.factory;
 
 import cn.nuaa.jensonxu.fairy.integration.chat.advisor.ChatMemoryAdvisor;
 import cn.nuaa.jensonxu.fairy.integration.chat.advisor.PersistenceMemoryAdvisor;
-import cn.nuaa.jensonxu.fairy.integration.chat.data.ModelConfig;
+import cn.nuaa.jensonxu.fairy.common.data.llm.ModelConfig;
 import cn.nuaa.jensonxu.fairy.integration.chat.memory.InSqlMemory;
-import cn.nuaa.jensonxu.fairy.repository.mysql.CustomChatMemoryRepository;
+import cn.nuaa.jensonxu.fairy.common.repository.mysql.CustomChatMemoryRepository;
 
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.memory.ChatMemory;

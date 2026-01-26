@@ -1,14 +1,14 @@
 package cn.nuaa.jensonxu.fairy.web.controller;
 
-import cn.nuaa.jensonxu.fairy.service.data.request.ChunkMergeDTO;
-import cn.nuaa.jensonxu.fairy.service.data.request.QueryChunkStatusDTO;
-import cn.nuaa.jensonxu.fairy.service.data.response.vo.ChunkMergeResultVO;
-import cn.nuaa.jensonxu.fairy.service.data.response.vo.ChunkStatusVO;
-import cn.nuaa.jensonxu.fairy.service.data.response.vo.ChunkUploadResultVO;
+import cn.nuaa.jensonxu.fairy.common.data.file.request.ChunkMergeDTO;
+import cn.nuaa.jensonxu.fairy.common.data.file.request.QueryChunkStatusDTO;
+import cn.nuaa.jensonxu.fairy.common.data.file.response.vo.ChunkMergeResultVO;
+import cn.nuaa.jensonxu.fairy.common.data.file.response.vo.ChunkStatusVO;
+import cn.nuaa.jensonxu.fairy.common.data.file.response.vo.ChunkUploadResultVO;
 import cn.nuaa.jensonxu.fairy.service.file.ChunkUploadService;
-import cn.nuaa.jensonxu.fairy.service.data.request.ChunkInitDTO;
-import cn.nuaa.jensonxu.fairy.service.data.response.CustomResponse;
-import cn.nuaa.jensonxu.fairy.service.data.response.vo.ChunkUploadInitVO;
+import cn.nuaa.jensonxu.fairy.common.data.file.request.ChunkInitDTO;
+import cn.nuaa.jensonxu.fairy.common.data.CustomResponse;
+import cn.nuaa.jensonxu.fairy.common.data.file.response.vo.ChunkUploadInitVO;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

@@ -1,7 +1,7 @@
 package cn.nuaa.jensonxu.fairy.integration.chat.config;
 
 import cn.nuaa.jensonxu.fairy.integration.chat.memory.InSqlMemory;
-import cn.nuaa.jensonxu.fairy.repository.mysql.CustomChatMemoryRepository;
+import cn.nuaa.jensonxu.fairy.common.repository.mysql.CustomChatMemoryRepository;
 
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.model.ChatModel;
