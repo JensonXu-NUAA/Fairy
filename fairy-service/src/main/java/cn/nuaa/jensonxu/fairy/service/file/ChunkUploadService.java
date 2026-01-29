@@ -8,6 +8,7 @@ import cn.nuaa.jensonxu.fairy.common.data.file.response.vo.ChunkStatusVO;
 import cn.nuaa.jensonxu.fairy.common.data.file.response.vo.ChunkUploadInitVO;
 import cn.nuaa.jensonxu.fairy.common.data.file.response.vo.ChunkUploadResultVO;
 import cn.nuaa.jensonxu.fairy.common.repository.mysql.FileUploadRecordRepository;
+import cn.nuaa.jensonxu.fairy.service.file.mq.producer.FileCleanupProducer;
 
 import io.minio.StatObjectResponse;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +31,7 @@ public class ChunkUploadService {
 
     private final RedisUtil redisUtil;
     private final FileService fileService;
+    private final FileCleanupProducer fileCleanupProducer;
     private final FileUploadRecordRepository fileUploadRecordRepository;
     private static final String CHUNK_STATUS_PREFIX = "upload:chunk:";
     private static final String FILE_META_PREFIX = "upload:meta:";
@@ -235,11 +237,18 @@ public class ChunkUploadService {
                     .build();
             fileUploadRecordRepository.insert(fileUploadRecordDO);  // 6. 生成数据库记录
 
-            cleanupFileData(userId, fileMd5);  // 7. 清理Redis中的临时数据
-            log.info("[chunk] Redis临时数据已清理, user id: {}, MD5: {}", userId, fileMd5);
+            // cleanupFileData(userId, fileMd5);  // 7. 清理Redis中的临时数据
+            // log.info("[chunk] Redis临时数据已清理, user id: {}, MD5: {}", userId, fileMd5);
 
-            int deletedChunks = fileService.deleteChunkFolder(userId, fileMd5);  // 8. 异步删除分片文件（可以发送MQ消息，这里先直接删除）
-            log.info("[chunk] 分片文件已清理, 删除数量: {}", deletedChunks);
+            // int deletedChunks = fileService.deleteChunkFolder(userId, fileMd5);  // 8. 异步删除分片文件（可以发送MQ消息，这里先直接删除）
+            // log.info("[chunk] 分片文件已清理, 删除数量: {}", deletedChunks);
+
+            fileCleanupProducer.sendRedisCleanupMessage(userId, fileMd5);  // 7. 异步清理 Redis 临时数据
+            log.info("[chunk] 已发送Redis清理消息到MQ, user id: {}, MD5: {}", userId, fileMd5);
+
+            fileCleanupProducer.sendChunkDeleteMessage(userId, fileMd5);  // 8. 异步删除分片文件
+            log.info("[chunk] 已发送分片删除消息到MQ, user id: {}, MD5: {}", userId, fileMd5);
+
 
             long mergeDuration = System.currentTimeMillis() - startTime;  // 9. 计算合并耗时
             log.info("[chunk] 文件合并成功, user id: {}, MD5: {}, 最终路径: {}, 耗时: {} ms", userId, fileMd5, finalFilePath, mergeDuration);

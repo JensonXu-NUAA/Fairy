@@ -55,5 +55,16 @@ minio:
   secret-key: XaZwXmVL+lOXKsDwAWy4ljBnp4S9+rD3261mZAbD
   bucket-name: file-upload
 
+rocketmq:
+  name-server: 139.224.197.83:9876  # NameServer 地址
+  producer:
+    group: fairy-file-producer-group  # 生产者组名
+    send-message-timeout: 3000  # 发送消息超时时间（毫秒）
+    max-message-size: 4194304  # 消息最大大小（字节，4MB）
+    retry-times-when-send-failed: 3  # 同步发送失败重试次数
+    retry-times-when-send-async-failed: 3  # 异步发送失败重试次数
+  consumer:
+    group: fairy-file-consumer-group  # 消费者组名
+
 app:
   base-url: localhost:12100
