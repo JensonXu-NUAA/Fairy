@@ -1,29 +1,30 @@
-package cn.nuaa.jensonxu.fairy.common.document.parser.impl;
+package cn.nuaa.jensonxu.fairy.common.document.parser.test;
 
 import cn.nuaa.jensonxu.fairy.common.document.parser.DocumentParseResult;
-import cn.nuaa.jensonxu.fairy.common.document.parser.impl.PdfDocumentParser;
+import cn.nuaa.jensonxu.fairy.common.document.parser.impl.ExcelDocumentParser;
 
 import java.io.File;
 
 /**
- * PDF 解析器测试
+ * Excel 解析器测试
  */
-public class PdfParserTest {
+public class ExcelParserTest {
 
     public static void main(String[] args) {
-        String pdfFilePath = "C:\\Users\\15153\\Downloads\\徐梦飞-录取通知书.pdf";
-        System.out.println("========== PDF 解析器测试 ==========\n");
-        PdfDocumentParser parser = new PdfDocumentParser();
-        File file = new File(pdfFilePath);
+        String excelFilePath = "C:\\Users\\15153\\Desktop\\文档\\各种材料\\徐梦飞-SZ2316035-硕士特别奖学金\\附件C-申请汇总表-徐梦飞.xls";
+        System.out.println("========== Excel 解析器测试 ==========\n");
+        ExcelDocumentParser parser = new ExcelDocumentParser();
+        File file = new File(excelFilePath);
 
         // 检查文件是否存在
         if (!file.exists()) {
-            System.out.println("错误: 文件不存在 - " + pdfFilePath);
+            System.out.println("错误: 文件不存在 - " + excelFilePath);
             return;
         }
 
         // 检查是否支持该文件
         System.out.println("文件名: " + file.getName());
+        System.out.println("文件大小: " + file.length() + " bytes");
         System.out.println("是否支持: " + parser.supports(file.getName()));
         System.out.println();
 
@@ -36,7 +37,7 @@ public class PdfParserTest {
         System.out.println("解析状态: " + (result.isSuccess() ? "成功" : "失败"));
         System.out.println("文档类型: " + result.getContentType());
         System.out.println("是否加密: " + result.isEncrypted());
-        System.out.println("页数: " + result.getPageCount());
+        System.out.println("工作表数: " + result.getPageCount());
         System.out.println("字符数: " + result.getCharCount());
         System.out.println("解析耗时: " + result.getParseDuration() + " ms");
 
@@ -47,10 +48,10 @@ public class PdfParserTest {
         }
 
         if (result.isSuccess()) {
-            System.out.println("\n---------- 文本内容预览 (前500字符) ----------");
+            System.out.println("\n---------- 文本内容预览 (前800字符) ----------");
             String content = result.getContent();
-            if (content.length() > 500) {
-                System.out.println(content.substring(0, 500) + "...");
+            if (content.length() > 800) {
+                System.out.println(content.substring(0, 800) + "...");
             } else {
                 System.out.println(content);
             }
@@ -61,4 +62,3 @@ public class PdfParserTest {
         System.out.println("\n========== 测试完成 ==========");
     }
 }
-
