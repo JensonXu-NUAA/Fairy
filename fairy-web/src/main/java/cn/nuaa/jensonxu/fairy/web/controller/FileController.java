@@ -72,8 +72,8 @@ public class FileController {
      * @param fileId 文件ID（对应MinIO中的objectName）
      * @return 文件流
      */
-    @GetMapping("/download/{fileId}")
-    public ResponseEntity<InputStreamResource> downloadFile(@PathVariable String fileId) {
+    @GetMapping("/download")
+    public ResponseEntity<InputStreamResource> downloadFile(@RequestParam String fileId) {
         try {
             InputStream fileStream = fileService.getFileStream(fileId);  // 获取文件流
             StatObjectResponse metadata = fileService.getFileMetadata(fileId);  // 获取文件元数据

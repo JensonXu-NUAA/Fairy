@@ -1,9 +1,9 @@
-package cn.nuaa.jensonxu.fairy.common.document.parser;
+package cn.nuaa.jensonxu.fairy.common.parser.document;
 
-import cn.nuaa.jensonxu.fairy.common.document.parser.impl.ExcelDocumentParser;
-import cn.nuaa.jensonxu.fairy.common.document.parser.impl.PdfDocumentParser;
-import cn.nuaa.jensonxu.fairy.common.document.parser.impl.TikaDocumentParser;
-import cn.nuaa.jensonxu.fairy.common.document.parser.impl.WordDocumentParser;
+import cn.nuaa.jensonxu.fairy.common.parser.document.impl.ExcelDocumentParser;
+import cn.nuaa.jensonxu.fairy.common.parser.document.impl.PdfDocumentParser;
+import cn.nuaa.jensonxu.fairy.common.parser.document.impl.TikaDocumentParser;
+import cn.nuaa.jensonxu.fairy.common.parser.document.impl.WordDocumentParser;
 
 import lombok.extern.slf4j.Slf4j;
 

@@ -99,8 +99,8 @@ public class FileService {
             );
         }
 
-
-        String finalFilePath = String.format("files/%s/%s", userId, fileName);  // 2. 构建最终文件路径
+        // 2. 构建最终文件路径
+        String finalFilePath = String.format("files/%s/%s", userId, fileName);
         minioClient.composeObject(
                 ComposeObjectArgs.builder()
                         .bucket(minioProperties.getBucketName())

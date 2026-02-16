@@ -1,6 +1,7 @@
 package cn.nuaa.jensonxu.fairy.integration.chat.factory;
 
 import cn.nuaa.jensonxu.fairy.common.data.llm.ModelConfig;
+import cn.nuaa.jensonxu.fairy.common.repository.minio.MinioProperties;
 import cn.nuaa.jensonxu.fairy.common.repository.mysql.CustomChatMemoryRepository;
 
 import com.alibaba.cloud.ai.dashscope.api.DashScopeApi;
@@ -8,6 +9,7 @@ import com.alibaba.cloud.ai.dashscope.chat.DashScopeChatModel;
 import com.alibaba.cloud.ai.dashscope.chat.DashScopeChatOptions;
 import com.alibaba.nacos.common.utils.StringUtils;
 
+import io.minio.MinioClient;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.ai.chat.client.ChatClient;
@@ -20,9 +22,11 @@ import org.springframework.stereotype.Component;
 public class DashScopeChatClientFactory extends BaseChatClientFactory {
 
     @Autowired
-    public DashScopeChatClientFactory(CustomChatMemoryRepository repository, ToolCallbackProvider provider) {
-        super(repository, provider);
+    public DashScopeChatClientFactory(CustomChatMemoryRepository repository, ToolCallbackProvider provider,
+                                    MinioClient minioClient, MinioProperties minioProperties) {
+        super(repository, provider, minioClient, minioProperties);
     }
+
 
     @Override
     public boolean supports(String provider) {

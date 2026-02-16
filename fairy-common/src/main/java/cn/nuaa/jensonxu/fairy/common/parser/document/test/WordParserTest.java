@@ -1,7 +1,7 @@
-package cn.nuaa.jensonxu.fairy.common.document.parser.test;
+package cn.nuaa.jensonxu.fairy.common.parser.document.test;
 
-import cn.nuaa.jensonxu.fairy.common.document.parser.DocumentParseResult;
-import cn.nuaa.jensonxu.fairy.common.document.parser.impl.WordDocumentParser;
+import cn.nuaa.jensonxu.fairy.common.parser.document.DocumentParseResult;
+import cn.nuaa.jensonxu.fairy.common.parser.document.impl.WordDocumentParser;
 
 import java.io.File;
 

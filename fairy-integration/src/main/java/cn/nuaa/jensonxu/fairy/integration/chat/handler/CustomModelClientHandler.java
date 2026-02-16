@@ -2,6 +2,7 @@ package cn.nuaa.jensonxu.fairy.integration.chat.handler;
 
 import cn.nuaa.jensonxu.fairy.common.data.llm.CustomChatDTO;
 
+import cn.nuaa.jensonxu.fairy.integration.chat.advisor.FileAdvisor;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
 
@@ -72,11 +73,19 @@ public class CustomModelClientHandler extends BaseChatModelClientHandler {
 
         Flux<ChatResponse> stream = chatClient.prompt()
                 .messages(userMessage)
-                .advisors(advisor -> advisor
-                        .param(ChatMemory.CONVERSATION_ID, customChatDTO.getConversationId())
-                        .param("userId", customChatDTO.getUserId())
-                        .param("chatId", customChatDTO.getChatId())
-                        .param("conversationId", customChatDTO.getConversationId()))
+                .advisors(advisor -> {
+                    advisor.param(ChatMemory.CONVERSATION_ID, customChatDTO.getConversationId())
+                            .param("userId", customChatDTO.getUserId())
+                            .param("chatId", customChatDTO.getChatId())
+                            .param("conversationId", customChatDTO.getConversationId());
+
+                    // 仅当 files 非空时才传入 advisor 上下文
+                    if(CollectionUtils.isNotEmpty(customChatDTO.getFiles())) {
+                        advisor.param("files", customChatDTO.getFiles());
+                    } else {
+                        log.info("[Chat] 聊天未附带文件");
+                    }
+                })
                 .stream()
                 .chatResponse();  // 使用chatResponse()获取完整响应
 
@@ -95,7 +104,7 @@ public class CustomModelClientHandler extends BaseChatModelClientHandler {
                     .chatResponse(chatResponse)
                     .build();
 
-            // 提取并保存Usage信息
+            // 提取并保存 Usage 信息
             if (ObjectUtils.isNotEmpty(chatResponse.getMetadata())) {
                 ChatResponseMetadata metadata = chatResponse.getMetadata();
                 usageRef.set(metadata.getUsage());

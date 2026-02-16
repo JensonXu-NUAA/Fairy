@@ -1,7 +1,7 @@
-package cn.nuaa.jensonxu.fairy.common.document.parser.impl;
+package cn.nuaa.jensonxu.fairy.common.parser.document.impl;
 
-import cn.nuaa.jensonxu.fairy.common.document.parser.DocumentParseResult;
-import cn.nuaa.jensonxu.fairy.common.document.parser.DocumentParser;
+import cn.nuaa.jensonxu.fairy.common.parser.document.DocumentParseResult;
+import cn.nuaa.jensonxu.fairy.common.parser.document.DocumentParser;
 
 import lombok.extern.slf4j.Slf4j;
 

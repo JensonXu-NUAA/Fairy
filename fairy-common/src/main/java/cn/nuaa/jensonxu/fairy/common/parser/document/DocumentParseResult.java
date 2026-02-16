@@ -1,4 +1,4 @@
-package cn.nuaa.jensonxu.fairy.common.document.parser;
+package cn.nuaa.jensonxu.fairy.common.parser.document;
 
 import lombok.Builder;
 import lombok.Data;

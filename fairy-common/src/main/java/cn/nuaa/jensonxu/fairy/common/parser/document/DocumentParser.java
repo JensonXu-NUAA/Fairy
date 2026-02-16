@@ -1,4 +1,4 @@
-package cn.nuaa.jensonxu.fairy.common.document.parser;
+package cn.nuaa.jensonxu.fairy.common.parser.document;
 
 import java.io.File;
 import java.io.InputStream;
