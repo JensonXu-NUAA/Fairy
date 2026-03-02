@@ -1,4 +1,4 @@
-package cn.nuaa.jensonxu.fairy.integration.mcp.utils;
+package cn.nuaa.jensonxu.fairy.integration.service.mcp.utils;
 
 import com.rometools.rome.feed.synd.SyndEntry;
 

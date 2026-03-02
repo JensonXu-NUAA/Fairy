@@ -1,9 +1,9 @@
 package cn.nuaa.jensonxu.fairy.common.data.file.response.vo;
 
-import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
 
 @Data
 @Builder

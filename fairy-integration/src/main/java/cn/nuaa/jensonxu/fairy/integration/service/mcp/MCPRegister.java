@@ -1,6 +1,6 @@
-package cn.nuaa.jensonxu.fairy.integration.mcp;
+package cn.nuaa.jensonxu.fairy.integration.service.mcp;
 
-import cn.nuaa.jensonxu.fairy.integration.mcp.service.McpToolService;
+import cn.nuaa.jensonxu.fairy.integration.service.mcp.service.McpToolService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.tool.ToolCallbackProvider;
 import org.springframework.ai.tool.method.MethodToolCallbackProvider;

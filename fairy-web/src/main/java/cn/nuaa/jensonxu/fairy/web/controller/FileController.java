@@ -1,7 +1,7 @@
 package cn.nuaa.jensonxu.fairy.web.controller;
 
 import cn.nuaa.jensonxu.fairy.service.file.FileService;
-import cn.nuaa.jensonxu.fairy.common.data.CustomResponse;
+import cn.nuaa.jensonxu.fairy.common.data.file.response.CustomResponse;
 
 import io.minio.StatObjectResponse;
 import lombok.RequiredArgsConstructor;

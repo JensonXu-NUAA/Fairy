@@ -1,4 +1,4 @@
-package cn.nuaa.jensonxu.fairy.common.data;
+package cn.nuaa.jensonxu.fairy.common.data.file.response;
 
 import lombok.Data;
 

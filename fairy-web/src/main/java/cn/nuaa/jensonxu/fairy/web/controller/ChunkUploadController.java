@@ -7,7 +7,7 @@ import cn.nuaa.jensonxu.fairy.common.data.file.response.vo.ChunkStatusVO;
 import cn.nuaa.jensonxu.fairy.common.data.file.response.vo.ChunkUploadResultVO;
 import cn.nuaa.jensonxu.fairy.service.file.ChunkUploadService;
 import cn.nuaa.jensonxu.fairy.common.data.file.request.ChunkInitDTO;
-import cn.nuaa.jensonxu.fairy.common.data.CustomResponse;
+import cn.nuaa.jensonxu.fairy.common.data.file.response.CustomResponse;
 import cn.nuaa.jensonxu.fairy.common.data.file.response.vo.ChunkUploadInitVO;
 
 import lombok.RequiredArgsConstructor;
