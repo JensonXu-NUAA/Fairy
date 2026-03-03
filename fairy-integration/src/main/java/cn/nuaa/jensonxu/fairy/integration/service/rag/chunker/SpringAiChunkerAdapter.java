@@ -44,13 +44,55 @@ public class SpringAiChunkerAdapter implements DocumentChunker {
 
     @Override
     public List<Document> chunk(List<Document> documents) {
-        return delegate.split(documents);
+        List<Document> base = delegate.split(documents);
+        return splitByChildrenDelimiters(base);
     }
 
     @Override
     public List<Document> chunkSingle(Document document) {
-        return delegate.split(document);
+        List<Document> base = delegate.split(document);
+        return splitByChildrenDelimiters(base);
     }
+
+    private List<Document> splitByChildrenDelimiters(List<Document> docs) {
+        if (docs == null || docs.isEmpty() || config.getChildrenDelimiters() == null || config.getChildrenDelimiters().isEmpty()) {
+            return docs;
+        }
+
+        String regex = config.getChildrenDelimiters().stream()
+                .filter(s -> s != null && !s.isBlank())
+                .map(java.util.regex.Pattern::quote)
+                .reduce((a, b) -> a + "|" + b)
+                .orElse("");
+
+        if (regex.isBlank()) {
+            return docs;
+        }
+
+        List<Document> result = new java.util.ArrayList<>();
+        for (Document doc : docs) {
+            String text = doc.getText();
+            if (text == null || text.isBlank()) {
+                result.add(doc);
+                continue;
+            }
+
+            String[] parts = text.split(regex);
+            if (parts.length <= 1) {
+                result.add(doc);
+                continue;
+            }
+
+            for (String part : parts) {
+                if (part == null || part.isBlank()) {
+                    continue;
+                }
+                result.add(new Document(part.trim(), new java.util.HashMap<>(doc.getMetadata())));
+            }
+        }
+        return result;
+    }
+
 
     @Override
     public boolean supports(Document document) {
