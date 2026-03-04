@@ -2,13 +2,16 @@ package cn.nuaa.jensonxu.fairy.integration.service.rag;
 
 import cn.nuaa.jensonxu.fairy.common.data.rag.ChunkResult;
 import cn.nuaa.jensonxu.fairy.common.data.rag.EnhancedDocumentChunk;
+import cn.nuaa.jensonxu.fairy.common.data.rag.TextSection;
 import cn.nuaa.jensonxu.fairy.common.parser.document.DocumentParseResult;
 import cn.nuaa.jensonxu.fairy.common.parser.document.DocumentParserFactory;
-
+import cn.nuaa.jensonxu.fairy.common.parser.document.PdfStructuredParseResult;
+import cn.nuaa.jensonxu.fairy.common.parser.document.impl.PdfDocumentParser;
 import cn.nuaa.jensonxu.fairy.integration.service.rag.chunker.ChunkerConfig;
 import cn.nuaa.jensonxu.fairy.integration.service.rag.chunker.DocumentChunker;
 import cn.nuaa.jensonxu.fairy.integration.service.rag.chunker.DocumentChunkerFactory;
 import cn.nuaa.jensonxu.fairy.integration.service.rag.chunker.TokenCounter;
+
 import org.springframework.ai.document.Document;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -112,5 +115,61 @@ public class DocumentChunkService {
                     .tokenCount(tokenCounter.countTokens(text))
                     .build();
         }).toList();
+    }
+
+    public ChunkResult chunkPdfStructured(MultipartFile file, ChunkerConfig config) {
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("上传文件为空");
+        }
+
+        final String fileName = file.getOriginalFilename();
+        if (fileName == null || fileName.isBlank()) {
+            throw new IllegalArgumentException("文件名为空，无法识别文档类型");
+        }
+
+        if (!fileName.toLowerCase().endsWith(".pdf")) {
+            throw new IllegalArgumentException("当前结构化分块仅支持 PDF 文件");
+        }
+
+        PdfDocumentParser parser = new PdfDocumentParser();
+        PdfStructuredParseResult structured;
+        try (InputStream inputStream = file.getInputStream()) {
+            structured = parser.parseStructured(inputStream, fileName);
+        } catch (IOException e) {
+            throw new IllegalStateException("读取上传文件失败: " + e.getMessage(), e);
+        }
+
+        if (structured == null || !structured.isSuccess()) {
+            String msg = structured == null ? "结构化解析结果为空" : structured.getErrorMessage();
+            throw new IllegalStateException("PDF 结构化解析失败: " + msg);
+        }
+
+        Map<String, Object> metadata = new HashMap<>();
+        if (structured.getMetadata() != null) {
+            metadata.putAll(structured.getMetadata());
+        }
+        metadata.put("file_name", fileName);
+        metadata.put("content_type", "application/pdf");
+        metadata.put("page_count", structured.getPageCount());
+        metadata.put("char_count", structured.getCharCount());
+        metadata.putIfAbsent("has_images", structured.getImageSections() != null && !structured.getImageSections().isEmpty());
+
+        if (structured.getImageSections() != null && !structured.getImageSections().isEmpty()) {
+            metadata.put("image_sections", structured.getImageSections());
+        }
+        if (structured.getTextSections() != null && !structured.getTextSections().isEmpty()) {
+            metadata.put("text_sections", structured.getTextSections());
+        }
+
+        // 当前先沿用现有 chunk 流程：将文本段拼接为一个 Document，图片通过 metadata 标记路由
+        String mergedText = structured.getTextSections() == null ? "" :
+                structured.getTextSections().stream()
+                        .map(TextSection::getText)
+                        .filter(t -> t != null && !t.isBlank())
+                        .reduce((a, b) -> a + "\n" + b)
+                        .orElse("");
+
+        Document sourceDoc = new Document(mergedText, metadata);
+        return chunkDocuments(List.of(sourceDoc), config);
     }
 }

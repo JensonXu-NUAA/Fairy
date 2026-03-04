@@ -1,11 +1,13 @@
 package cn.nuaa.jensonxu.fairy.integration.service.rag.chunker;
 
+import cn.nuaa.jensonxu.fairy.common.data.rag.PositionInfo;
 import lombok.Data;
 
 import cn.nuaa.jensonxu.fairy.common.data.rag.EnhancedDocumentChunk;
 
 import org.springframework.stereotype.Component;
 
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -45,29 +47,13 @@ public class MediaContextAttacher {
         }
 
         // 对每个媒体块附加上下文
-        for (int i = 0; i < chunks.size(); i++) {
-            EnhancedDocumentChunk c = chunks.get(i);
-            if (!"image".equals(c.getChunkType()) && !"table".equals(c.getChunkType())) {
+        for (EnhancedDocumentChunk chunk : chunks) {
+            if (!"image".equals(chunk.getChunkType()) && !"table".equals(chunk.getChunkType())) {
                 continue;
             }
 
-            // 简化“最近”规则：先取媒体块前面的最近文本，再补后面的文本
-            java.util.List<EnhancedDocumentChunk> ordered = new java.util.ArrayList<>();
-
-            // 前向最近（倒序）
-            for (int j = i - 1; j >= 0; j--) {
-                EnhancedDocumentChunk candidate = chunks.get(j);
-                if ("text".equals(candidate.getChunkType())) {
-                    ordered.add(candidate);
-                }
-            }
-            // 后向最近（正序）
-            for (int j = i + 1; j < chunks.size(); j++) {
-                EnhancedDocumentChunk candidate = chunks.get(j);
-                if ("text".equals(candidate.getChunkType())) {
-                    ordered.add(candidate);
-                }
-            }
+            List<EnhancedDocumentChunk> ordered = new java.util.ArrayList<>(textChunks);
+            ordered.sort(Comparator.comparingDouble(t -> distanceBetween(chunk, t)));
 
             // 如果在原列表中没找到（兜底）
             if (ordered.isEmpty()) {
@@ -75,7 +61,7 @@ public class MediaContextAttacher {
             }
 
             String context = collectContextByTokenBudget(ordered, contextBudget);
-            c.setContextText(context);
+            chunk.setContextText(context);
         }
 
         return chunks;
@@ -147,4 +133,37 @@ public class MediaContextAttacher {
         return String.join("", selected).trim();
     }
 
+    private double distanceBetween(EnhancedDocumentChunk mediaChunk, EnhancedDocumentChunk textChunk) {
+        PositionInfo mediaPos = toPosition(mediaChunk);
+        PositionInfo textPos = toPosition(textChunk);
+
+        if (mediaPos == null || textPos == null) {
+            return Double.MAX_VALUE;
+        }
+        return mediaPos.distanceTo(textPos);
+    }
+
+    private PositionInfo toPosition(EnhancedDocumentChunk chunk) {
+        if (chunk == null || chunk.getPositions() == null || chunk.getPositions().isEmpty()) {
+            return null;
+        }
+
+        List<Integer> p = chunk.getPositions().get(0);
+        if (p == null || p.size() < 3) {
+            return null;
+        }
+
+        int pageNum = p.get(0);
+        double top = p.get(1);
+        double bottom = p.get(2);
+
+        if (p.size() >= 5) {
+            double left = p.get(3);
+            double right = p.get(4);
+            return new PositionInfo(pageNum, top, bottom, left, right);
+        }
+
+        // 兼容旧的 3 元组格式
+        return new PositionInfo(pageNum, top, bottom, 0.0, 0.0);
+    }
 }

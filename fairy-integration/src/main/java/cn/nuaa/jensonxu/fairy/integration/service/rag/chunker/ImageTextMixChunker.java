@@ -2,11 +2,15 @@ package cn.nuaa.jensonxu.fairy.integration.service.rag.chunker;
 
 import cn.nuaa.jensonxu.fairy.common.data.rag.EnhancedDocumentChunk;
 import cn.nuaa.jensonxu.fairy.common.data.rag.ImageSection;
+import cn.nuaa.jensonxu.fairy.common.data.rag.PositionInfo;
 import cn.nuaa.jensonxu.fairy.common.data.rag.TextSection;
+
 import lombok.Data;
+
 import org.springframework.ai.document.Document;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -83,12 +87,33 @@ public class ImageTextMixChunker implements DocumentChunker {
      * 从文档提取文本段落
      */
     private List<TextSection> extractSections(Document document) {
-        if (document == null || document.getText() == null || document.getText().isBlank()) {
+        if (document == null) {
+            return List.of();
+        }
+
+        Object sectionsObj = document.getMetadata().get("text_sections");
+        if (sectionsObj instanceof List<?> rawList && !rawList.isEmpty()) {
+            List<TextSection> sections = new ArrayList<>();
+            for (Object obj : rawList) {
+                if (obj instanceof TextSection textSection) {
+                    // tokenCount 为空时兜底计算
+                    if (textSection.getTokenCount() <= 0 && textSection.getText() != null) {
+                        textSection.setTokenCount(tokenCounter.countTokens(textSection.getText()));
+                    }
+                    sections.add(textSection);
+                }
+            }
+            if (!sections.isEmpty()) {
+                return sections;
+            }
+        }
+
+        // 兼容旧逻辑：按句分割 document.getText()
+        if (document.getText() == null || document.getText().isBlank()) {
             return List.of();
         }
 
         String text = document.getText().trim();
-        // 骨架阶段：按中英文句号/问号/感叹号进行句级切分，便于 token 预算分块与 overlap 生效
         String[] parts = text.split("(?<=[。！？.!?])");
 
         List<TextSection> sections = new java.util.ArrayList<>();
@@ -99,7 +124,7 @@ public class ImageTextMixChunker implements DocumentChunker {
             String sentence = part.trim();
             sections.add(TextSection.builder()
                     .text(sentence)
-                    .position(null) // 位置解析后续接入
+                    .position(null)
                     .title(false)
                     .titleLevel(0)
                     .table(false)
@@ -107,7 +132,6 @@ public class ImageTextMixChunker implements DocumentChunker {
                     .build());
         }
 
-        // 兜底：如果分句后为空，退化成单 section
         if (sections.isEmpty()) {
             sections.add(TextSection.builder()
                     .text(text)
@@ -122,8 +146,6 @@ public class ImageTextMixChunker implements DocumentChunker {
         return sections;
     }
 
-
-
     /**
      * 从文档提取图片段落
      */
@@ -132,6 +154,20 @@ public class ImageTextMixChunker implements DocumentChunker {
             return List.of();
         }
 
+        Object sectionsObj = document.getMetadata().get("image_sections");
+        if (sectionsObj instanceof List<?> rawList && !rawList.isEmpty()) {
+            List<ImageSection> images = new ArrayList<>();
+            for (Object obj : rawList) {
+                if (obj instanceof ImageSection imageSection) {
+                    images.add(imageSection);
+                }
+            }
+            if (!images.isEmpty()) {
+                return images;
+            }
+        }
+
+        // 兼容旧逻辑：单图占位
         Object hasImages = document.getMetadata().get("has_images");
         if (!Boolean.TRUE.equals(hasImages)) {
             return List.of();
@@ -140,11 +176,10 @@ public class ImageTextMixChunker implements DocumentChunker {
         Object imageIdObj = document.getMetadata().get("image_id");
         Object imageDataObj = document.getMetadata().get("image_data");
 
-        // 骨架阶段：若只有 has_images=true 但没有图片详情，也返回一个占位图片块
         ImageSection imageSection = ImageSection.builder()
                 .imageId(imageIdObj == null ? "unknown-image-id" : String.valueOf(imageIdObj))
                 .imageData(imageDataObj == null ? null : String.valueOf(imageDataObj))
-                .position(null) // 后续接入解析器位置信息
+                .position(null)
                 .width(0)
                 .height(0)
                 .mimeType("image/unknown")
@@ -159,11 +194,11 @@ public class ImageTextMixChunker implements DocumentChunker {
     private List<EnhancedDocumentChunk> naiveMergeWithImages(List<TextSection> sections,
                                                              List<ImageSection> images,
                                                              ChunkerConfig config) {
-        // 1) 文本按 token 预算分块
         List<EnhancedDocumentChunk> result = new java.util.ArrayList<>();
         int target = Math.max(1, config.getChunkTokenSize());
         StringBuilder current = new StringBuilder();
         int currentTokens = 0;
+        cn.nuaa.jensonxu.fairy.common.data.rag.PositionInfo lastSectionPos = null;
 
         if (sections != null) {
             for (TextSection section : sections) {
@@ -175,13 +210,17 @@ public class ImageTextMixChunker implements DocumentChunker {
                 int tokens = section.getTokenCount() > 0 ? section.getTokenCount() : tokenCounter.countTokens(text);
 
                 if (currentTokens > 0 && currentTokens + tokens > target) {
-                    int overlapTokens = tokenCounter.calculateOverlapTokens(config.getChunkTokenSize(), config.getOverlappedPercent());
+                    int overlapTokens = tokenCounter.calculateOverlapTokens(
+                            config.getChunkTokenSize(),
+                            config.getOverlappedPercent()
+                    );
 
                     String chunkText = current.toString().trim();
                     if (!chunkText.isBlank()) {
                         result.add(EnhancedDocumentChunk.builder()
                                 .text(chunkText)
                                 .chunkType("text")
+                                .positions(wrapPosition(lastSectionPos))
                                 .tokenCount(currentTokens)
                                 .build());
                     }
@@ -189,8 +228,6 @@ public class ImageTextMixChunker implements DocumentChunker {
                     String overlapSeed = "";
                     if (overlapTokens > 0 && !current.isEmpty()) {
                         String curr = current.toString().trim();
-
-                        // 优先取最后一句，避免切出“半句尾巴”
                         String[] sentenceParts = curr.split("(?<=[。！？.!?])");
                         if (sentenceParts.length > 0) {
                             String lastSentence = sentenceParts[sentenceParts.length - 1].trim();
@@ -198,11 +235,6 @@ public class ImageTextMixChunker implements DocumentChunker {
 
                             if (!lastSentence.isBlank() && lastSentenceTokens <= overlapTokens) {
                                 overlapSeed = lastSentence;
-                            } else {
-                                // 兜底：最后一句太长时，仍按字符截尾
-                                // int keepChars = Math.min(curr.length(), Math.max(1, overlapTokens));
-                                // overlapSeed = curr.substring(curr.length() - keepChars);
-                                overlapSeed = "";
                             }
                         }
                     }
@@ -221,22 +253,22 @@ public class ImageTextMixChunker implements DocumentChunker {
                 }
                 current.append(text);
                 currentTokens += tokens;
+                lastSectionPos = section.getPosition();
             }
         }
 
-        // 收尾
         if (currentTokens > 0) {
             String chunkText = current.toString().trim();
             if (!chunkText.isBlank()) {
                 result.add(EnhancedDocumentChunk.builder()
                         .text(chunkText)
                         .chunkType("text")
+                        .positions(wrapPosition(lastSectionPos))
                         .tokenCount(currentTokens)
                         .build());
             }
         }
 
-        // 2) 追加图片块（骨架阶段：每张图一个占位块）
         if (images != null) {
             for (ImageSection image : images) {
                 if (image == null) {
@@ -245,15 +277,16 @@ public class ImageTextMixChunker implements DocumentChunker {
                 result.add(EnhancedDocumentChunk.builder()
                         .text("[image]")
                         .chunkType("image")
+                        .positions(wrapPosition(image.getPosition()))
                         .imageId(image.getImageId())
                         .imageData(image.getImageData())
                         .tokenCount(0)
                         .build());
             }
         }
+
         return result;
     }
-
 
     /**
      * 子分隔符二次切分
@@ -356,4 +389,21 @@ public class ImageTextMixChunker implements DocumentChunker {
         }).toList();
     }
 
+    private List<Integer> toSimplePosition(PositionInfo pos) {
+        if (pos == null) {
+            return null;
+        }
+        return List.of(
+                pos.getPageNum(),
+                (int) pos.getTop(),
+                (int) pos.getBottom(),
+                (int) pos.getLeft(),
+                (int) pos.getRight()
+        );
+    }
+
+    private List<List<Integer>> wrapPosition(PositionInfo pos) {
+        List<Integer> p = toSimplePosition(pos);
+        return p == null ? List.of() : List.of(p);
+    }
 }
