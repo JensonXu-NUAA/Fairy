@@ -14,8 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 图文混合分块器（正式骨架）
- * 后续补充：图文合并算法、上下文附加细节、二次切分逻辑。
+ * 图文混合分块器
  */
 @Data
 @Component

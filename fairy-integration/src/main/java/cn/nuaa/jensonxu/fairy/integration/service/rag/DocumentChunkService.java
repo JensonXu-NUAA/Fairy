@@ -12,6 +12,7 @@ import cn.nuaa.jensonxu.fairy.integration.service.rag.chunker.DocumentChunker;
 import cn.nuaa.jensonxu.fairy.integration.service.rag.chunker.DocumentChunkerFactory;
 import cn.nuaa.jensonxu.fairy.integration.service.rag.chunker.TokenCounter;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.ai.document.Document;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -26,16 +27,11 @@ import java.util.Map;
  * 文档分块服务
  */
 @Service
+@RequiredArgsConstructor
 public class DocumentChunkService {
 
     private final DocumentChunkerFactory chunkerFactory;
     private final TokenCounter tokenCounter;
-
-    public DocumentChunkService(DocumentChunkerFactory chunkerFactory,
-                                TokenCounter tokenCounter) {
-        this.chunkerFactory = chunkerFactory;
-        this.tokenCounter = tokenCounter;
-    }
 
     public ChunkResult chunkFile(MultipartFile file, ChunkerConfig config) {
         if (file == null || file.isEmpty()) {
@@ -152,7 +148,8 @@ public class DocumentChunkService {
         metadata.put("content_type", "application/pdf");
         metadata.put("page_count", structured.getPageCount());
         metadata.put("char_count", structured.getCharCount());
-        metadata.putIfAbsent("has_images", structured.getImageSections() != null && !structured.getImageSections().isEmpty());
+        metadata.put("has_images", structured.getImageSections() != null && !structured.getImageSections().isEmpty());
+        // metadata.putIfAbsent("has_images", structured.getImageSections() != null && !structured.getImageSections().isEmpty());
 
         if (structured.getImageSections() != null && !structured.getImageSections().isEmpty()) {
             metadata.put("image_sections", structured.getImageSections());

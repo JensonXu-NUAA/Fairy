@@ -38,7 +38,7 @@ public class MediaContextAttacher {
         }
 
         // 预收集文本块
-        java.util.List<EnhancedDocumentChunk> textChunks = chunks.stream()
+        List<EnhancedDocumentChunk> textChunks = chunks.stream()
                 .filter(c -> "text".equals(c.getChunkType()))
                 .toList();
 
