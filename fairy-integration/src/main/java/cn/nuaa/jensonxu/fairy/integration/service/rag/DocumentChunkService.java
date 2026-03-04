@@ -7,12 +7,15 @@ import cn.nuaa.jensonxu.fairy.common.parser.document.DocumentParseResult;
 import cn.nuaa.jensonxu.fairy.common.parser.document.DocumentParserFactory;
 import cn.nuaa.jensonxu.fairy.common.parser.document.PdfStructuredParseResult;
 import cn.nuaa.jensonxu.fairy.common.parser.document.impl.PdfDocumentParser;
+
 import cn.nuaa.jensonxu.fairy.integration.service.rag.chunker.ChunkerConfig;
 import cn.nuaa.jensonxu.fairy.integration.service.rag.chunker.DocumentChunker;
 import cn.nuaa.jensonxu.fairy.integration.service.rag.chunker.DocumentChunkerFactory;
 import cn.nuaa.jensonxu.fairy.integration.service.rag.chunker.TokenCounter;
 
 import lombok.RequiredArgsConstructor;
+
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.ai.document.Document;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -102,7 +105,7 @@ public class DocumentChunkService {
 
     private List<EnhancedDocumentChunk> convertToEnhancedChunks(List<Document> documents) {
         return documents.stream().map(doc -> {
-            Map<String, Object> metadata = doc.getMetadata() == null ? new HashMap<>() : new HashMap<>(doc.getMetadata());
+            Map<String, Object> metadata = new HashMap<>(doc.getMetadata());
             String text = doc.getText();
             return EnhancedDocumentChunk.builder()
                     .text(text)
@@ -119,7 +122,7 @@ public class DocumentChunkService {
         }
 
         final String fileName = file.getOriginalFilename();
-        if (fileName == null || fileName.isBlank()) {
+        if (StringUtils.isBlank(fileName)) {
             throw new IllegalArgumentException("文件名为空，无法识别文档类型");
         }
 
