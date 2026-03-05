@@ -42,9 +42,7 @@ public class PositionInfo {
             }
         } else {
             int pageDist = Math.abs(this.pageNum - other.pageNum);
-            double verticalDist = (this.pageNum < other.pageNum)
-                    ? (1000 - this.bottom + other.top)
-                    : (1000 - other.bottom + this.top);
+            double verticalDist = (this.pageNum < other.pageNum) ? (1000 - this.bottom + other.top) : (1000 - other.bottom + this.top);
             return pageDist * 1000 + verticalDist;
         }
     }

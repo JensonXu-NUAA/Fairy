@@ -88,8 +88,7 @@ public class PdfDocumentParser implements DocumentParser {
     }
 
     /**
-     * 结构化解析 PDF（文本段 + 图片段）
-     * 当前为骨架实现：先复用现有解析流程，返回空的 sections/images。
+     * 结构化解析 PDF
      */
     public PdfStructuredParseResult parseStructured(InputStream inputStream, String fileName) {
         long startTime = System.currentTimeMillis();
@@ -98,9 +97,8 @@ public class PdfDocumentParser implements DocumentParser {
             String content = stripper.getText(document);
 
             Map<String, String> metadata = extractMetadata(document);
-            List<TextSection> textSections = extractTextSections(document);
-            List<ImageSection> imageSections = extractImageSections(document);
-
+            List<TextSection> textSections = extractTextSections(document);  // 提取文本段
+            List<ImageSection> imageSections = extractImageSections(document);  // 提取图片段
             if (ObjectUtils.isEmpty(metadata)) {
                 metadata = new HashMap<>();
             }
@@ -199,7 +197,6 @@ public class PdfDocumentParser implements DocumentParser {
 
     /**
      * 逐页提取文本段
-     * 当前策略：每页提取为一个 TextSection，位置先用占位值，后续再替换为真实 bbox。
      */
     private List<TextSection> extractTextSections(PDDocument document) throws Exception {
         PositionAwareTextStripper stripper = new PositionAwareTextStripper();
@@ -249,13 +246,14 @@ public class PdfDocumentParser implements DocumentParser {
             if (startNew) {
                 if (!currText.isEmpty()) {
                     sections.add(TextSection.builder()
-                            .text(currText.toString().trim())
-                            .position(new PositionInfo(currPage, currTop, currBottom, 0, 1000))
-                            .title(false)
-                            .titleLevel(0)
-                            .table(false)
-                            .tokenCount(0)
-                            .build());
+                                    .text(currText.toString().trim())
+                                    .position(new PositionInfo(currPage, currTop, currBottom, 0, 1000))
+                                    .title(false)
+                                    .titleLevel(0)
+                                    .table(false)
+                                    .tokenCount(0)
+                                    .build()
+                    );
                 }
 
                 currPage = fragment.getPageIndex();
@@ -271,13 +269,14 @@ public class PdfDocumentParser implements DocumentParser {
 
         if (!currText.isEmpty()) {
             sections.add(TextSection.builder()
-                    .text(currText.toString().trim())
-                    .position(new PositionInfo(currPage, currTop, currBottom, 0, 1000))
-                    .title(false)
-                    .titleLevel(0)
-                    .table(false)
-                    .tokenCount(0)
-                    .build());
+                            .text(currText.toString().trim())
+                            .position(new PositionInfo(currPage, currTop, currBottom, 0, 1000))
+                            .title(false)
+                            .titleLevel(0)
+                            .table(false)
+                            .tokenCount(0)
+                            .build()
+            );
         }
 
         return sections;
@@ -301,11 +300,11 @@ public class PdfDocumentParser implements DocumentParser {
                             COSName objectName = (COSName) operands.get(0);
                             PDXObject xObject = getResources().getXObject(objectName);
                             if (xObject instanceof PDImageXObject imageXObject) {
-                                BufferedImage buffered = imageXObject.getImage();
-                                if (buffered != null) {
+                                BufferedImage bufferedImage = imageXObject.getImage();
+                                if (ObjectUtils.isNotEmpty(bufferedImage)) {
                                     ByteArrayOutputStream stream = new ByteArrayOutputStream();
                                     String format = imageXObject.getSuffix() == null ? "png" : imageXObject.getSuffix();
-                                    ImageIO.write(buffered, format, stream);
+                                    ImageIO.write(bufferedImage, format, stream);
                                     String base64 = Base64.getEncoder().encodeToString(stream.toByteArray());
 
                                     // 从当前图形状态获取图片放置矩阵
@@ -325,8 +324,8 @@ public class PdfDocumentParser implements DocumentParser {
                                             .imageId("pdf-p" + currentPageIndex + "-" + System.nanoTime())
                                             .imageData(base64)
                                             .position(new PositionInfo(currentPageIndex, top, bottom, left, right))
-                                            .width(buffered.getWidth())
-                                            .height(buffered.getHeight())
+                                            .width(bufferedImage.getWidth())
+                                            .height(bufferedImage.getHeight())
                                             .mimeType("image/" + format.toLowerCase())
                                             .build();
 
@@ -344,7 +343,6 @@ public class PdfDocumentParser implements DocumentParser {
         } catch (Exception e) {
             log.warn("[pdf] 提取图片失败: {}", e.getMessage());
         }
-
         return images;
     }
 

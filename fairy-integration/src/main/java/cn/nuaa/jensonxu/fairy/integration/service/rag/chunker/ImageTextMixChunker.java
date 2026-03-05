@@ -6,6 +6,7 @@ import cn.nuaa.jensonxu.fairy.common.data.rag.PositionInfo;
 import cn.nuaa.jensonxu.fairy.common.data.rag.TextSection;
 
 import lombok.Data;
+import lombok.RequiredArgsConstructor;
 
 import org.springframework.ai.document.Document;
 import org.springframework.stereotype.Component;
@@ -18,17 +19,12 @@ import java.util.List;
  */
 @Data
 @Component
+@RequiredArgsConstructor
 public class ImageTextMixChunker implements DocumentChunker {
 
     private ChunkerConfig config = new ChunkerConfig();
     private final MediaContextAttacher contextAttacher;
     private final TokenCounter tokenCounter;
-
-    public ImageTextMixChunker(MediaContextAttacher contextAttacher,
-                               TokenCounter tokenCounter) {
-        this.contextAttacher = contextAttacher;
-        this.tokenCounter = tokenCounter;
-    }
 
     @Override
     public ChunkerConfig getConfig() {
@@ -49,8 +45,8 @@ public class ImageTextMixChunker implements DocumentChunker {
 
     @Override
     public List<Document> chunkSingle(Document document) {
-        List<TextSection> sections = extractSections(document);
-        List<ImageSection> images = extractImages(document);
+        List<TextSection> sections = extractSections(document);  // 从 metadata 中提取文本
+        List<ImageSection> images = extractImages(document);  // 从 metadata 中提取图片
         List<EnhancedDocumentChunk> chunks = naiveMergeWithImages(sections, images, config);
 
         if (config.getTableContextSize() > 0 || config.getImageContextSize() > 0) {
@@ -190,14 +186,12 @@ public class ImageTextMixChunker implements DocumentChunker {
     /**
      * 图文混合分块核心算法
      */
-    private List<EnhancedDocumentChunk> naiveMergeWithImages(List<TextSection> sections,
-                                                             List<ImageSection> images,
-                                                             ChunkerConfig config) {
+    private List<EnhancedDocumentChunk> naiveMergeWithImages(List<TextSection> sections, List<ImageSection> images, ChunkerConfig config) {
         List<EnhancedDocumentChunk> result = new java.util.ArrayList<>();
         int target = Math.max(1, config.getChunkTokenSize());
         StringBuilder current = new StringBuilder();
         int currentTokens = 0;
-        cn.nuaa.jensonxu.fairy.common.data.rag.PositionInfo lastSectionPos = null;
+        PositionInfo lastSectionPos = null;
 
         if (sections != null) {
             for (TextSection section : sections) {

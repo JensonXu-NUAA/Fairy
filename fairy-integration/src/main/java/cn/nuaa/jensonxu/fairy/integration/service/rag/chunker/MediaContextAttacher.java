@@ -11,8 +11,7 @@ import java.util.Comparator;
 import java.util.List;
 
 /**
- * 媒体上下文附加器（骨架）
- * 后续实现：按位置距离为图片/表格块附加附近文本上下文
+ * 媒体上下文附加器
  */
 @Data
 @Component
@@ -25,7 +24,7 @@ public class MediaContextAttacher {
     }
 
     /**
-     * 当前占位实现：直接返回原 chunks
+     * 当前占位实现
      */
     public List<EnhancedDocumentChunk> attach(List<EnhancedDocumentChunk> chunks, ChunkerConfig config) {
         if (chunks == null || chunks.isEmpty()) {
