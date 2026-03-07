@@ -1,4 +1,4 @@
-package cn.nuaa.jensonxu.fairy.integration.service.rag;
+package cn.nuaa.jensonxu.fairy.service.rag;
 
 import cn.nuaa.jensonxu.fairy.common.data.rag.ChunkResult;
 import cn.nuaa.jensonxu.fairy.common.data.rag.EnhancedDocumentChunk;
