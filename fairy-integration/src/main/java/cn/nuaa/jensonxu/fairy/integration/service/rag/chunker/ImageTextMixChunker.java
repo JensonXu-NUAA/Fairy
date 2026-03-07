@@ -50,7 +50,7 @@ public class ImageTextMixChunker implements DocumentChunker {
         List<EnhancedDocumentChunk> chunks = naiveMergeWithImages(sections, images, config);
 
         if (config.getTableContextSize() > 0 || config.getImageContextSize() > 0) {
-            chunks = contextAttacher.attach(chunks, config);
+            chunks = contextAttacher.attach(chunks, config);  // 为图片添加上下文
         }
 
         if (config.getChildrenDelimiters() != null && !config.getChildrenDelimiters().isEmpty()) {
@@ -86,7 +86,7 @@ public class ImageTextMixChunker implements DocumentChunker {
             return List.of();
         }
 
-        Object sectionsObj = document.getMetadata().get("text_sections");
+        Object sectionsObj = document.getMetadata().get("text_sections");  // 读取解析器预置的文本段列表
         if (sectionsObj instanceof List<?> rawList && !rawList.isEmpty()) {
             List<TextSection> sections = new ArrayList<>();
             for (Object obj : rawList) {
@@ -95,7 +95,7 @@ public class ImageTextMixChunker implements DocumentChunker {
                     if (textSection.getTokenCount() <= 0 && textSection.getText() != null) {
                         textSection.setTokenCount(tokenCounter.countTokens(textSection.getText()));
                     }
-                    sections.add(textSection);
+                    sections.add(textSection);  // 将符合条件的文本段加入列表
                 }
             }
             if (!sections.isEmpty()) {
@@ -103,7 +103,7 @@ public class ImageTextMixChunker implements DocumentChunker {
             }
         }
 
-        // 兼容旧逻辑：按句分割 document.getText()
+        // 兜底：对文档原始文本按句末标点正则切分，生成临时文本段列表，并为每段计算和缓存 Token 数
         if (document.getText() == null || document.getText().isBlank()) {
             return List.of();
         }
@@ -149,7 +149,7 @@ public class ImageTextMixChunker implements DocumentChunker {
             return List.of();
         }
 
-        Object sectionsObj = document.getMetadata().get("image_sections");
+        Object sectionsObj = document.getMetadata().get("image_sections");  // 读取解析器预置的图片段列表
         if (sectionsObj instanceof List<?> rawList && !rawList.isEmpty()) {
             List<ImageSection> images = new ArrayList<>();
             for (Object obj : rawList) {
@@ -184,10 +184,10 @@ public class ImageTextMixChunker implements DocumentChunker {
     }
 
     /**
-     * 图文混合分块核心算法
+     * 分块逻辑，文本段和图片分开处理
      */
     private List<EnhancedDocumentChunk> naiveMergeWithImages(List<TextSection> sections, List<ImageSection> images, ChunkerConfig config) {
-        List<EnhancedDocumentChunk> result = new java.util.ArrayList<>();
+        List<EnhancedDocumentChunk> result = new ArrayList<>();
         int target = Math.max(1, config.getChunkTokenSize());
         StringBuilder current = new StringBuilder();
         int currentTokens = 0;
@@ -202,12 +202,9 @@ public class ImageTextMixChunker implements DocumentChunker {
                 String text = section.getText().trim();
                 int tokens = section.getTokenCount() > 0 ? section.getTokenCount() : tokenCounter.countTokens(text);
 
+                // 文本按照 token 上限进行分块，如果超出上限，就将其保留至下一块的开头
                 if (currentTokens > 0 && currentTokens + tokens > target) {
-                    int overlapTokens = tokenCounter.calculateOverlapTokens(
-                            config.getChunkTokenSize(),
-                            config.getOverlappedPercent()
-                    );
-
+                    int overlapTokens = tokenCounter.calculateOverlapTokens(config.getChunkTokenSize(), config.getOverlappedPercent());
                     String chunkText = current.toString().trim();
                     if (!chunkText.isBlank()) {
                         result.add(EnhancedDocumentChunk.builder()
@@ -262,6 +259,7 @@ public class ImageTextMixChunker implements DocumentChunker {
             }
         }
 
+        // 对于图片，直接整块加入
         if (images != null) {
             for (ImageSection image : images) {
                 if (image == null) {

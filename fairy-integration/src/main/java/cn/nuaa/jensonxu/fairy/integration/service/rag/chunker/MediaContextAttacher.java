@@ -1,12 +1,14 @@
 package cn.nuaa.jensonxu.fairy.integration.service.rag.chunker;
 
 import cn.nuaa.jensonxu.fairy.common.data.rag.PositionInfo;
-import lombok.Data;
-
 import cn.nuaa.jensonxu.fairy.common.data.rag.EnhancedDocumentChunk;
+
+import lombok.Data;
+import lombok.RequiredArgsConstructor;
 
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
@@ -15,16 +17,13 @@ import java.util.List;
  */
 @Data
 @Component
+@RequiredArgsConstructor
 public class MediaContextAttacher {
 
     private final TokenCounter tokenCounter;
 
-    public MediaContextAttacher(TokenCounter tokenCounter) {
-        this.tokenCounter = tokenCounter;
-    }
-
     /**
-     * 当前占位实现
+     * 为图片附加上下文
      */
     public List<EnhancedDocumentChunk> attach(List<EnhancedDocumentChunk> chunks, ChunkerConfig config) {
         if (chunks == null || chunks.isEmpty()) {
@@ -51,7 +50,7 @@ public class MediaContextAttacher {
                 continue;
             }
 
-            List<EnhancedDocumentChunk> ordered = new java.util.ArrayList<>(textChunks);
+            List<EnhancedDocumentChunk> ordered = new ArrayList<>(textChunks);
             ordered.sort(Comparator.comparingDouble(t -> distanceBetween(chunk, t)));
 
             // 如果在原列表中没找到（兜底）
@@ -132,6 +131,9 @@ public class MediaContextAttacher {
         return String.join("", selected).trim();
     }
 
+    /**
+     * 计算媒体块与文本块的空间距离
+     */
     private double distanceBetween(EnhancedDocumentChunk mediaChunk, EnhancedDocumentChunk textChunk) {
         PositionInfo mediaPos = toPosition(mediaChunk);
         PositionInfo textPos = toPosition(textChunk);
