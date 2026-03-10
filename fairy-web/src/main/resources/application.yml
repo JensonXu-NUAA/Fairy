@@ -68,3 +68,10 @@ rocketmq:
 
 app:
   base-url: localhost:12100
+
+fairy:
+  agent:
+    default-model: qwen-turbo  # Agent 推理默认使用的模型名称
+    max-iterations: 10  # ReAct 最大循环迭代次数，防止无限循环消耗 token
+    stream-thinking: true  # 是否将 LLM 推理过程（Thought）推送给客户端
+    max-history-size: 10  # Agent 会话历史保留的最大轮次

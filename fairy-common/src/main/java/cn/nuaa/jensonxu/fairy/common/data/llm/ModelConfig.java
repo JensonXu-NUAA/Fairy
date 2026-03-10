@@ -18,5 +18,8 @@ public class ModelConfig {
         private Double topP;
         private Double frequencyPenalty;
         private Double presencePenalty;
+        private Boolean enableThinking;  // 思考模式
+        private Integer thinkingBudget;  // 思考模式 token
+
     }
 }
