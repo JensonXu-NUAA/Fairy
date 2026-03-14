@@ -2,6 +2,7 @@ package cn.nuaa.jensonxu.fairy.integration.agent.factory;
 
 import cn.nuaa.jensonxu.fairy.common.data.llm.ModelConfig;
 import com.alibaba.cloud.ai.graph.agent.ReactAgent;
+import com.alibaba.cloud.ai.graph.checkpoint.BaseCheckpointSaver;
 import org.springframework.ai.tool.ToolCallback;
 
 /**
@@ -28,6 +29,7 @@ public abstract class BaseAgentModelFactory {
      *
      * @param modelConfig 来自 Nacos 的模型配置（含 apiKey、baseUrl、参数等）
      * @return 对应提供商的 ChatModel 实例
+     * @param saver       共享 MemorySaver，用于跨轮次保持会话状态
      */
-    public abstract ReactAgent createAgent(ModelConfig modelConfig, ToolCallback[] tools);
+    public abstract ReactAgent createAgent(ModelConfig modelConfig, ToolCallback[] tools, BaseCheckpointSaver saver);
 }

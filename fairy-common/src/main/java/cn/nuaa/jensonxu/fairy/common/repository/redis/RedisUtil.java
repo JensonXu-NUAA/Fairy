@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 @Component
@@ -126,4 +127,30 @@ public class RedisUtil {
                         connection.stringCommands().bitCount(key.getBytes())
         );
     }
+
+    // ========== List 操作 ==========
+
+    /**
+     * 批量追加元素到 List 右端（RPUSH）
+     */
+    public void listRightPushAll(String key, Object... values) {
+        redisTemplate.opsForList().rightPushAll(key, values);
+    }
+
+    /**
+     * 裁剪 List，只保留 [start, end] 范围内的元素（LTRIM）
+     * 常用于滑动窗口：listTrim(key, -maxSize, -1) 保留最新 maxSize 条
+     */
+    public void listTrim(String key, long start, long end) {
+        redisTemplate.opsForList().trim(key, start, end);
+    }
+
+    /**
+     * 获取 List 指定范围内的所有元素（LRANGE）
+     * 获取全部元素：listRange(key, 0, -1)
+     */
+    public List<Object> listRange(String key, long start, long end) {
+        return redisTemplate.opsForList().range(key, start, end);
+    }
+
 }

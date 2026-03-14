@@ -75,3 +75,12 @@ fairy:
     max-iterations: 10  # ReAct 最大循环迭代次数，防止无限循环消耗 token
     stream-thinking: true  # 是否将 LLM 推理过程（Thought）推送给客户端
     max-history-size: 10  # Agent 会话历史保留的最大轮次
+    memory:
+      short-term:
+        max-messages: 20       # Redis 滑动窗口大小（条）
+        ttl-hours: 24          # Redis key 过期时间（小时）
+      long-term:
+        summarize-threshold: 20   # 触发摘要的消息数阈值
+        max-facts-per-user: 50    # MySQL 中每用户保留的最大记忆条数
+        model-name: qwen3.5-flash    # 摘要专用模型
+

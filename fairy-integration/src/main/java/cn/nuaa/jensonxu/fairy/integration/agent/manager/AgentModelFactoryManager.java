@@ -4,6 +4,7 @@ import cn.nuaa.jensonxu.fairy.common.data.llm.ModelConfig;
 import cn.nuaa.jensonxu.fairy.integration.agent.factory.BaseAgentModelFactory;
 
 import com.alibaba.cloud.ai.graph.agent.ReactAgent;
+import com.alibaba.cloud.ai.graph.checkpoint.BaseCheckpointSaver;
 import com.alibaba.fastjson2.JSON;
 
 import lombok.extern.slf4j.Slf4j;
@@ -43,7 +44,7 @@ public class AgentModelFactoryManager {
      * @param toolCallbacks   已注册的工具回调列表，由 ToolCallbackProvider 提供
      * @return 配置好工具的 ReactAgent 实例
      */
-    public ReactAgent createAgent(ModelConfig modelConfig, ToolCallback[] toolCallbacks) {
+    public ReactAgent createAgent(ModelConfig modelConfig, ToolCallback[] toolCallbacks, BaseCheckpointSaver saver) {
         String provider = modelConfig.getProvider();
         if (StringUtils.isEmpty(provider)) {
             throw new IllegalArgumentException("模型提供商 (provider) 不能为空");
@@ -56,7 +57,7 @@ public class AgentModelFactoryManager {
         log.info("[agent] 创建 ReactAgent，provider: {}, model: {}", provider, JSON.toJSONString(modelConfig.getModelName()));
 
         // 先由各工厂创建基础 ReactAgent
-        return factory.createAgent(modelConfig, toolCallbacks);
+        return factory.createAgent(modelConfig, toolCallbacks, saver);
     }
 
     /**

@@ -3,6 +3,7 @@ package cn.nuaa.jensonxu.fairy.integration.agent.factory;
 import cn.nuaa.jensonxu.fairy.common.data.llm.ModelConfig;
 
 import com.alibaba.cloud.ai.graph.agent.ReactAgent;
+import com.alibaba.cloud.ai.graph.checkpoint.BaseCheckpointSaver;
 import com.alibaba.nacos.common.utils.StringUtils;
 
 import lombok.extern.slf4j.Slf4j;
@@ -31,7 +32,7 @@ public class DashScopeAgentModelFactory extends BaseAgentModelFactory {
     }
 
     @Override
-    public ReactAgent createAgent(ModelConfig modelConfig, ToolCallback[] tools) {
+    public ReactAgent createAgent(ModelConfig modelConfig, ToolCallback[] tools, BaseCheckpointSaver saver) {
         if (!StringUtils.hasText(modelConfig.getApiKey())) {
             throw new IllegalArgumentException("[agent] API Key 不能为空");
         }
@@ -68,6 +69,7 @@ public class DashScopeAgentModelFactory extends BaseAgentModelFactory {
                 .name(modelConfig.getModelName())
                 .model(model)
                 .tools(tools)
+                .saver(saver)
                 .build();
     }
 }

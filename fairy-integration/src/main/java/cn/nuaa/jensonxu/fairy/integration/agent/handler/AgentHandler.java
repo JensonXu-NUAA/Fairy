@@ -4,8 +4,10 @@ import cn.nuaa.jensonxu.fairy.common.data.llm.AgentChatDTO;
 import cn.nuaa.jensonxu.fairy.common.data.llm.AgentEventDTO;
 import cn.nuaa.jensonxu.fairy.integration.agent.AgentProperties;
 import cn.nuaa.jensonxu.fairy.integration.agent.AgentSseEventType;
+import cn.nuaa.jensonxu.fairy.integration.agent.memory.AgentMemoryManager;
 
 import com.alibaba.cloud.ai.graph.NodeOutput;
+import com.alibaba.cloud.ai.graph.RunnableConfig;
 import com.alibaba.cloud.ai.graph.agent.ReactAgent;
 import com.alibaba.cloud.ai.graph.streaming.OutputType;
 import com.alibaba.cloud.ai.graph.streaming.StreamingOutput;
@@ -18,13 +20,15 @@ import org.apache.commons.lang3.StringUtils;
 
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.ToolResponseMessage;
+import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.concurrent.CompletableFuture;
 
 /**
  * Agent 执行处理器
- * 负责驱动 ReactAgent 流式执行，并将各阶段结果映射为 SSE 事件推送给客户端
+ * 负责驱动 ReactAgent 流式执行，将各阶段结果映射为 SSE 事件推送给客户端
+ * 推理结束后负责触发短期记忆写入和会话结束回调
  */
 @Slf4j
 public class AgentHandler {
@@ -33,20 +37,25 @@ public class AgentHandler {
     private final SseEmitter sseEmitter;
     private final AgentChatDTO agentChatDTO;
     private final AgentProperties agentProperties;
+    private final AgentMemoryManager agentMemoryManager;
 
-    /** SSE 数据块序号，与 BaseChatModelClientHandler 保持一致的格式 */
+    /** SSE 数据块序号 */
     private Integer chunkId = 1;
 
-    public AgentHandler(ReactAgent reactAgent, SseEmitter sseEmitter, AgentChatDTO agentChatDTO, AgentProperties agentProperties, int maxIterations) {
+    /** 累积本轮 Assistant 回复文本，用于推理结束后写入短期记忆 */
+    private final StringBuilder assistantTextBuffer = new StringBuilder();
+
+    public AgentHandler(ReactAgent reactAgent, SseEmitter sseEmitter, AgentChatDTO agentChatDTO,
+                        AgentProperties agentProperties, AgentMemoryManager agentMemoryManager) {
         this.reactAgent = reactAgent;
         this.sseEmitter = sseEmitter;
         this.agentChatDTO = agentChatDTO;
         this.agentProperties = agentProperties;
+        this.agentMemoryManager = agentMemoryManager;
     }
 
     /**
      * 异步执行入口，由 AgentService 调用后立即返回
-     * 实际推理和 SSE 推送在独立线程中进行
      */
     public void run() {
         CompletableFuture.runAsync(() -> {
@@ -60,11 +69,17 @@ public class AgentHandler {
     }
 
     /**
-     * 订阅 ReactAgent 流式输出，阻塞至流结束后发送结束事件
+     * 订阅 ReactAgent 流式输出，阻塞至流结束后写入记忆并发送结束事件
      */
     private void executeAgentStream() {
         try {
-            reactAgent.stream(agentChatDTO.getMessage()).doOnNext(output -> {
+            // 传入 threadId，激活 MemorySaver 的跨轮会话隔离
+            RunnableConfig runnableConfig = RunnableConfig.builder()
+                    .threadId(agentChatDTO.getAgentSessionId())
+                    .build();
+
+            reactAgent.stream(agentChatDTO.getMessage(), runnableConfig)
+                    .doOnNext(output -> {
                         try {
                             handleNodeOutput(output);
                         } catch (Exception e) {
@@ -73,7 +88,11 @@ public class AgentHandler {
                         }
                     })
                     .blockLast();
-            sendEnd();  // 流正常结束
+
+            // 流正常结束，持久化本轮对话消息
+            saveRoundMessages();
+            sendEnd();
+
         } catch (Exception e) {
             handleError(e);
         }
@@ -81,6 +100,7 @@ public class AgentHandler {
 
     /**
      * 按 OutputType 将 NodeOutput 映射到对应的 SSE 事件
+     * 同时累积 Assistant 回复文本到 assistantTextBuffer
      */
     private void handleNodeOutput(NodeOutput output) throws Exception {
         if (!(output instanceof StreamingOutput streamingOutput)) {
@@ -95,15 +115,18 @@ public class AgentHandler {
                 if (message instanceof AssistantMessage assistantMessage) {
                     Object reasoningContent = assistantMessage.getMetadata().get("reasoningContent");
                     if (reasoningContent != null && StringUtils.isNotBlank(reasoningContent.toString())) {
-                        // 推理过程（Thought），受 streamThinking 开关控制
                         if (agentProperties.isStreamThinking()) {
-                            AgentEventDTO event = AgentEventDTO.ofContent(AgentSseEventType.AGENT_THINKING, reasoningContent.toString(), agentChatDTO.getAgentSessionId());
+                            AgentEventDTO event = AgentEventDTO.ofContent(AgentSseEventType.AGENT_THINKING,
+                                    reasoningContent.toString(), agentChatDTO.getAgentSessionId());
                             sendSseEvent(AgentSseEventType.AGENT_THINKING, JSON.toJSONString(event));
                         }
                     } else {
-                        String text = assistantMessage.getText();  // 最终答案分块，流式下发
+                        String text = assistantMessage.getText();
                         if (StringUtils.isNotBlank(text)) {
-                            AgentEventDTO event = AgentEventDTO.ofContent(AgentSseEventType.AGENT_ANSWER, text, agentChatDTO.getAgentSessionId());
+                            // 累积 Assistant 回复，推理结束后一并写入记忆
+                            assistantTextBuffer.append(text);
+                            AgentEventDTO event = AgentEventDTO.ofContent(AgentSseEventType.AGENT_ANSWER,
+                                    text, agentChatDTO.getAgentSessionId());
                             sendSseEvent(AgentSseEventType.AGENT_ANSWER, JSON.toJSONString(event));
                         }
                     }
@@ -111,27 +134,49 @@ public class AgentHandler {
             }
 
             case AGENT_MODEL_FINISHED -> {
-                // 模型推理完成，若包含工具调用则发送 AGENT_TOOL_CALL 事件
                 if (message instanceof AssistantMessage assistantMessage && assistantMessage.hasToolCalls()) {
                     for (AssistantMessage.ToolCall toolCall : assistantMessage.getToolCalls()) {
-                        AgentEventDTO event = AgentEventDTO.ofToolCall(toolCall.name(), toolCall.arguments(), agentChatDTO.getAgentSessionId(), chunkId);
+                        AgentEventDTO event = AgentEventDTO.ofToolCall(toolCall.name(), toolCall.arguments(),
+                                agentChatDTO.getAgentSessionId(), chunkId);
                         sendSseEvent(AgentSseEventType.AGENT_TOOL_CALL, JSON.toJSONString(event));
                     }
                 }
             }
 
             case AGENT_TOOL_FINISHED -> {
-                // 工具执行完毕，发送 AGENT_TOOL_RESULT 事件
                 if (message instanceof ToolResponseMessage toolResponse) {
                     for (ToolResponseMessage.ToolResponse response : toolResponse.getResponses()) {
-                        AgentEventDTO event = AgentEventDTO.ofToolResult(response.name(), response.responseData(), agentChatDTO.getAgentSessionId(), chunkId);
+                        AgentEventDTO event = AgentEventDTO.ofToolResult(response.name(), response.responseData(),
+                                agentChatDTO.getAgentSessionId(), chunkId);
                         sendSseEvent(AgentSseEventType.AGENT_TOOL_RESULT, JSON.toJSONString(event));
                     }
                 }
             }
 
-            default ->
-                    log.debug("[agent] 忽略节点输出类型: {}, node: {}", type, streamingOutput.node());
+            default -> log.debug("[agent] 忽略节点输出类型: {}, node: {}", type, streamingOutput.node());
+        }
+    }
+
+    /**
+     * 推理结束后将本轮 HumanMessage + AssistantMessage 写入短期记忆
+     */
+    private void saveRoundMessages() {
+        String assistantText = assistantTextBuffer.toString();
+        if (StringUtils.isBlank(assistantText)) {
+            log.debug("[agent] 本轮 Assistant 回复为空，跳过记忆写入");
+            return;
+        }
+
+        log.info("[agent] 本轮完整回复 - agentSessionId: {}\n{}", agentChatDTO.getAgentSessionId(), assistantText);
+        try {
+            agentMemoryManager.saveRoundMessages(
+                    agentChatDTO.getAgentSessionId(),
+                    agentChatDTO.getUserId(),
+                    new UserMessage(agentChatDTO.getMessage()),
+                    new AssistantMessage(assistantText)
+            );
+        } catch (Exception e) {
+            log.warn("[agent] 短期记忆写入失败, sessionId: {}", agentChatDTO.getAgentSessionId(), e);
         }
     }
 
@@ -146,6 +191,9 @@ public class AgentHandler {
             sendSseEvent(AgentSseEventType.AGENT_END, JSON.toJSONString(event));
             sendSseEvent(AgentSseEventType.DONE, AgentSseEventType.DONE);
             sseEmitter.complete();
+
+            // 会话结束回调，Phase 2 摘要提炼在此处触发
+            agentMemoryManager.onSessionEnd(agentChatDTO.getAgentSessionId(), agentChatDTO.getUserId());
         } catch (Exception e) {
             log.error("[agent] 发送结束事件异常 - agentSessionId: {}", agentChatDTO.getAgentSessionId(), e);
             sseEmitter.completeWithError(e);
@@ -155,7 +203,8 @@ public class AgentHandler {
     private void handleError(Throwable e) {
         log.error("[agent] 执行异常 - agentSessionId: {}", agentChatDTO.getAgentSessionId(), e);
         try {
-            AgentEventDTO event = AgentEventDTO.ofContent(AgentSseEventType.AGENT_ERROR, e.getMessage(), agentChatDTO.getAgentSessionId());
+            AgentEventDTO event = AgentEventDTO.ofContent(AgentSseEventType.AGENT_ERROR,
+                    e.getMessage(), agentChatDTO.getAgentSessionId());
             sendSseEvent(AgentSseEventType.AGENT_ERROR, JSON.toJSONString(event));
         } catch (Exception ex) {
             log.error("[agent] 发送错误事件异常", ex);
@@ -164,9 +213,6 @@ public class AgentHandler {
         }
     }
 
-    /**
-     * SSE 事件发送
-     */
     private void sendSseEvent(String event, String data) throws Exception {
         SseEmitter.SseEventBuilder builder = SseEmitter.event()
                 .id(chunkId.toString())

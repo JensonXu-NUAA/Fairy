@@ -5,6 +5,8 @@ import cn.nuaa.jensonxu.fairy.integration.agent.AgentClientBuilder;
 import cn.nuaa.jensonxu.fairy.integration.agent.AgentProperties;
 import cn.nuaa.jensonxu.fairy.integration.agent.handler.AgentHandler;
 
+import cn.nuaa.jensonxu.fairy.integration.agent.memory.AgentLoadedContext;
+import cn.nuaa.jensonxu.fairy.integration.agent.memory.AgentMemoryManager;
 import com.alibaba.cloud.ai.graph.agent.ReactAgent;
 
 import lombok.RequiredArgsConstructor;
@@ -20,11 +22,11 @@ public class AgentService {
 
     private final AgentClientBuilder agentClientBuilder;
     private final AgentProperties agentProperties;
+    private final AgentMemoryManager agentMemoryManager;
 
     /**
      * Agent 流式对话入口
      * 创建 SseEmitter 后立即返回，实际执行由 AgentHandler 异步驱动
-     *
      * @param agentChatDTO 请求参数（含用户消息、模型名称、agentSessionId 等）
      * @return SseEmitter，HTTP 层持有此对象向客户端推送 Agent 执行事件
      */
@@ -33,14 +35,12 @@ public class AgentService {
         String agentSessionId = agentChatDTO.getAgentSessionId();  // 确保 agentSessionId 已生成
         int maxIterations = resolveMaxIterations(agentChatDTO.getMaxIterations());  // 解析最终使用的 maxIterations
         log.info("[agent] 开始 Agent 对话 - userId: {}, agentSessionId: {}, model: {}, maxIterations: {}", agentChatDTO.getUserId(), agentSessionId, agentChatDTO.getModelName(), maxIterations);
-        ReactAgent reactAgent = agentClientBuilder.build(agentChatDTO.getModelName());  // 构建 ReactAgent（含模型 + 工具）
 
-        // 创建 SSE 连接（0L 表示不超时，由 Agent 执行完毕后主动关闭）
-        SseEmitter sseEmitter = new SseEmitter(0L);
+        AgentLoadedContext context = agentMemoryManager.loadContext(agentSessionId, agentChatDTO.getUserId());  // ① 加载记忆上下文：短期消息历史 + 长期记忆 System Prompt 前缀
+        ReactAgent reactAgent = agentClientBuilder.build(agentChatDTO.getModelName(), agentSessionId, context);  // ② 构建 ReactAgent：注入 MemorySaver、回填历史、设置 System Prompt
+        SseEmitter sseEmitter = new SseEmitter(0L);  // ③ 创建 SSE 连接（0L 表示不超时，由 Agent 执行完毕后主动关闭）
         setSseCallbacks(sseEmitter, agentSessionId);
-
-        // 实例化 AgentHandler，异步执行 Agent 推理循环
-        AgentHandler agentHandler = new AgentHandler(reactAgent, sseEmitter, agentChatDTO, agentProperties, maxIterations);
+        AgentHandler agentHandler = new AgentHandler(reactAgent, sseEmitter, agentChatDTO, agentProperties, agentMemoryManager);  // ④ 实例化 AgentHandler，异步执行 Agent 推理循环
         agentHandler.run();
 
         return sseEmitter;
