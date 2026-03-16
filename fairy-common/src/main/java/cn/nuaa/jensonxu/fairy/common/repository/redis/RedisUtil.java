@@ -153,4 +153,10 @@ public class RedisUtil {
         return redisTemplate.opsForList().range(key, start, end);
     }
 
+    public long listLen(String key) {
+        Long size = redisTemplate.opsForList().size(key);
+        return size != null ? size : 0L;
+    }
+
+
 }

@@ -14,6 +14,7 @@ import com.alibaba.cloud.ai.graph.streaming.StreamingOutput;
 
 import com.alibaba.fastjson2.JSON;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.lang3.StringUtils;
@@ -31,6 +32,7 @@ import java.util.concurrent.CompletableFuture;
  * 推理结束后负责触发短期记忆写入和会话结束回调
  */
 @Slf4j
+@RequiredArgsConstructor
 public class AgentHandler {
 
     private final ReactAgent reactAgent;
@@ -39,20 +41,8 @@ public class AgentHandler {
     private final AgentProperties agentProperties;
     private final AgentMemoryManager agentMemoryManager;
 
-    /** SSE 数据块序号 */
-    private Integer chunkId = 1;
-
-    /** 累积本轮 Assistant 回复文本，用于推理结束后写入短期记忆 */
-    private final StringBuilder assistantTextBuffer = new StringBuilder();
-
-    public AgentHandler(ReactAgent reactAgent, SseEmitter sseEmitter, AgentChatDTO agentChatDTO,
-                        AgentProperties agentProperties, AgentMemoryManager agentMemoryManager) {
-        this.reactAgent = reactAgent;
-        this.sseEmitter = sseEmitter;
-        this.agentChatDTO = agentChatDTO;
-        this.agentProperties = agentProperties;
-        this.agentMemoryManager = agentMemoryManager;
-    }
+    private Integer chunkId = 1;  // SSE 数据块序号
+    private final StringBuilder assistantTextBuffer = new StringBuilder();  // 累积本轮 Assistant 回复文本
 
     /**
      * 异步执行入口，由 AgentService 调用后立即返回

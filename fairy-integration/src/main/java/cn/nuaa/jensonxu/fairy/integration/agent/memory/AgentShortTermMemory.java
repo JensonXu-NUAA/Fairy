@@ -38,14 +38,17 @@ public class AgentShortTermMemory {
 
     /**
      * 保存本轮新增消息（HumanMessage + AssistantMessage）
+     * 返回因滑动窗口 LTRIM 即将被淘汰的消息列表（调用方决定是否触发摘要）
+     * 若无消息被淘汰，返回空列表
      *
      * @param sessionId 会话 ID
      * @param userId    用户 ID
      * @param messages  本轮新增消息列表
+     * @return 被淘汰的历史消息，按时间升序；无淘汰时为空列表
      */
-    public void saveMessages(String sessionId, String userId, List<Message> messages) {
+    public List<Message> saveMessages(String sessionId, String userId, List<Message> messages) {
         if (messages == null || messages.isEmpty()) {
-            return;
+            return List.of();
         }
 
         // 1、先写 MySQL（失败抛异常，整体失败）
@@ -53,10 +56,22 @@ public class AgentShortTermMemory {
         sessionMessageRepository.batchInsert(doList);
 
         // 2、再写 Redis（失败仅 warn，不阻断主流程）
+        List<Message> evicted = List.of();
         try {
             String key = buildKey(sessionId);
             int maxMessages = agentProperties.getMemory().getShortTerm().getMaxMessages();
             int ttlHours = agentProperties.getMemory().getShortTerm().getTtlHours();
+
+            // 计算本次写入后将被 LTRIM 淘汰的消息（在 push 之前捕获）
+            long beforeLen = redisUtil.listLen(key);
+            long afterLen = beforeLen + messages.size();
+            long evictCount = Math.max(0L, afterLen - maxMessages);
+            if (evictCount > 0) {
+                List<Object> toEvict = redisUtil.listRange(key, 0, evictCount - 1);
+                if (toEvict != null && !toEvict.isEmpty()) {
+                    evicted = toEvict.stream().map(o -> deserialize(o.toString())).toList();
+                }
+            }
 
             List<String> serialized = messages.stream().map(this::serialize).toList();
             redisUtil.listRightPushAll(key, serialized.toArray(new Object[0]));
@@ -65,7 +80,10 @@ public class AgentShortTermMemory {
         } catch (Exception e) {
             log.warn("[agent] Redis 写入失败，下次请求将从 MySQL 恢复, sessionId: {}", sessionId, e);
         }
+
+        return evicted;
     }
+
 
     /**
      * 读取会话消息列表
