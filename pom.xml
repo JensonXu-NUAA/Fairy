@@ -25,7 +25,7 @@
     </modules>
 
     <properties>
-        <java.version>17</java.version>
+        <java.version>21</java.version>
         <lombok.version>1.18.30</lombok.version>
         <commons-lang3.version>3.14.0</commons-lang3.version>
         <commons-collections4.version>4.3</commons-collections4.version>

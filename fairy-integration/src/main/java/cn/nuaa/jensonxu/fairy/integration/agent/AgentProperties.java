@@ -17,7 +17,7 @@ public class AgentProperties {
      * 全局默认模型名称
      * 请求中 modelName 为空时使用此值
      */
-    private String defaultModel = "qwen-turbo";
+    private String defaultModel = "qwen3.5-plus";
 
     /**
      * ReAct 最大循环迭代次数上限
@@ -38,6 +38,11 @@ public class AgentProperties {
      * 记忆管理配置
      */
     private Memory memory = new Memory();
+
+    /**
+     * 并发控制配置
+     */
+    private Concurrency concurrency = new Concurrency();
 
     @Data
     public static class Memory {
@@ -65,7 +70,25 @@ public class AgentProperties {
             private int maxFactsPerUser = 50;
 
             /** 摘要专用模型名称 */
-            private String modelName = "qwen-flash";
+            private String modelName = "qwen3.5-flash";
         }
+    }
+
+    /**
+     * 并发控制配置
+     */
+    @Data
+    public static class Concurrency {
+        /**
+         * 最大并发 Agent 请求数（Semaphore 许可数）
+         * 超过此上限的请求将等待，等待超时后拒绝
+         */
+        private int maxConcurrent = 20;
+
+        /**
+         * 等待获取许可的最长时间（毫秒）
+         * 超过此时间仍未获取到许可，则直接向客户端返回 429 错误事件
+         */
+        private long acquireTimeoutMs = 5000;
     }
 }

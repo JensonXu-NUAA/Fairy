@@ -40,6 +40,7 @@ public class AgentHandler {
     private final AgentChatDTO agentChatDTO;
     private final AgentProperties agentProperties;
     private final AgentMemoryManager agentMemoryManager;
+    private final AgentConcurrencyLimiter concurrencyLimiter;
 
     private Integer chunkId = 1;  // SSE 数据块序号
     private final StringBuilder assistantTextBuffer = new StringBuilder();  // 累积本轮 Assistant 回复文本
@@ -47,7 +48,7 @@ public class AgentHandler {
     /**
      * 异步执行入口，由 AgentService 调用后立即返回
      */
-    public void run() {
+    public void runV1() {
         CompletableFuture.runAsync(() -> {
             try {
                 sendStart();
@@ -57,6 +58,36 @@ public class AgentHandler {
             }
         });
     }
+
+    /**
+     * 异步执行入口，由 AgentService 调用后立即返回
+     * 使用虚拟线程执行，在线程内部竞争 Semaphore 许可：
+     *   - 获取成功 → 正常执行 Agent 推理，finally 中释放许可
+     *   - 获取超时 → 向客户端推送 429 限流事件，关闭 SSE 连接
+     */
+    public void runV2() {
+        Thread.ofVirtual()
+                .name("agent-vt-", 0)
+                .start(() -> {
+                    boolean acquired = false;
+                    try {
+                        concurrencyLimiter.acquire();
+                        acquired = true;
+                        sendStart();
+                        executeAgentStream();
+                    } catch (AgentConcurrencyException e) {
+                        log.warn("[agent] 并发限流触发 - agentSessionId: {}, 等待队列长度: {}", agentChatDTO.getAgentSessionId(), concurrencyLimiter.getQueueLength());
+                        handleConcurrencyRejected(e);  // 等待超时，向客户端推送限流事件
+                    } catch (Exception e) {
+                        handleError(e);
+                    } finally {
+                        if (acquired) {
+                            concurrencyLimiter.release();
+                        }
+                    }
+                });
+    }
+
 
     /**
      * 订阅 ReactAgent 流式输出，阻塞至流结束后写入记忆并发送结束事件
@@ -189,6 +220,22 @@ public class AgentHandler {
             sseEmitter.completeWithError(e);
         }
     }
+
+    /**
+     * 并发限流触发时，向客户端推送专属的 429 错误事件并关闭连接
+     * 与 handleError() 区分，方便客户端按事件类型做不同的 UI 提示
+     */
+    private void handleConcurrencyRejected(AgentConcurrencyException e) {
+        try {
+            AgentEventDTO event = AgentEventDTO.ofContent(AgentSseEventType.AGENT_ERROR, "429:" + e.getMessage(), agentChatDTO.getAgentSessionId());
+            sendSseEvent(AgentSseEventType.AGENT_ERROR, JSON.toJSONString(event));
+        } catch (Exception ex) {
+            log.error("[agent] 发送限流事件异常", ex);
+        } finally {
+            sseEmitter.complete();
+        }
+    }
+
 
     private void handleError(Throwable e) {
         log.error("[agent] 执行异常 - agentSessionId: {}", agentChatDTO.getAgentSessionId(), e);
