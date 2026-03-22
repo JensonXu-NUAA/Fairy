@@ -2,7 +2,7 @@ package cn.nuaa.jensonxu.fairy.integration.agent.memory;
 
 import cn.nuaa.jensonxu.fairy.common.data.llm.ModelConfig;
 import cn.nuaa.jensonxu.fairy.integration.agent.AgentProperties;
-import cn.nuaa.jensonxu.fairy.integration.agent.manager.AgentModelManager;
+import cn.nuaa.jensonxu.fairy.integration.agent.model.manager.AgentModelManager;
 
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONArray;

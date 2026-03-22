@@ -1,8 +1,10 @@
-package cn.nuaa.jensonxu.fairy.integration.agent.factory;
+package cn.nuaa.jensonxu.fairy.integration.agent.model.factory;
 
 import cn.nuaa.jensonxu.fairy.common.data.llm.ModelConfig;
 
 import com.alibaba.cloud.ai.graph.agent.ReactAgent;
+import com.alibaba.cloud.ai.graph.agent.hook.Hook;
+import com.alibaba.cloud.ai.graph.agent.interceptor.Interceptor;
 import com.alibaba.cloud.ai.graph.checkpoint.BaseCheckpointSaver;
 import com.alibaba.nacos.common.utils.StringUtils;
 
@@ -13,6 +15,8 @@ import org.springframework.ai.zhipuai.ZhiPuAiChatModel;
 import org.springframework.ai.zhipuai.ZhiPuAiChatOptions;
 import org.springframework.ai.zhipuai.api.ZhiPuAiApi;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
 
 @Slf4j
 @Component
@@ -29,7 +33,7 @@ public class ZhipuAiAgentModelFactory extends BaseAgentModelFactory {
     }
 
     @Override
-    public ReactAgent createAgent(ModelConfig modelConfig, ToolCallback[] tools, BaseCheckpointSaver saver) {
+    public ReactAgent createAgent(ModelConfig modelConfig, ToolCallback[] tools, BaseCheckpointSaver saver, List<Hook> hooks, List<Interceptor> interceptors) {
         if (!StringUtils.hasText(modelConfig.getApiKey())) {
             throw new IllegalArgumentException("[Agent-ZhipuAi] API Key 不能为空");
         }
@@ -55,6 +59,8 @@ public class ZhipuAiAgentModelFactory extends BaseAgentModelFactory {
                 .model(model)
                 .tools(tools)
                 .saver(saver)
+                .hooks(hooks)
+                .interceptors(interceptors)
                 .build();
     }
 }

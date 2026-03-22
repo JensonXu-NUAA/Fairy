@@ -1,9 +1,15 @@
-package cn.nuaa.jensonxu.fairy.integration.agent.factory;
+package cn.nuaa.jensonxu.fairy.integration.agent.model.factory;
 
 import cn.nuaa.jensonxu.fairy.common.data.llm.ModelConfig;
+
 import com.alibaba.cloud.ai.graph.agent.ReactAgent;
+import com.alibaba.cloud.ai.graph.agent.hook.Hook;
 import com.alibaba.cloud.ai.graph.checkpoint.BaseCheckpointSaver;
+import com.alibaba.cloud.ai.graph.agent.interceptor.Interceptor;
+
 import org.springframework.ai.tool.ToolCallback;
+
+import java.util.List;
 
 /**
  * Agent 模型工厂抽象基类
@@ -31,5 +37,5 @@ public abstract class BaseAgentModelFactory {
      * @return 对应提供商的 ChatModel 实例
      * @param saver       共享 MemorySaver，用于跨轮次保持会话状态
      */
-    public abstract ReactAgent createAgent(ModelConfig modelConfig, ToolCallback[] tools, BaseCheckpointSaver saver);
+    public abstract ReactAgent createAgent(ModelConfig modelConfig, ToolCallback[] tools, BaseCheckpointSaver saver, List<Hook> hooks, List<Interceptor> interceptors);
 }

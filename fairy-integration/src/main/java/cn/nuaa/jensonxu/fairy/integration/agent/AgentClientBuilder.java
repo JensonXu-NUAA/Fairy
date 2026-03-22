@@ -1,10 +1,16 @@
 package cn.nuaa.jensonxu.fairy.integration.agent;
 
-import cn.nuaa.jensonxu.fairy.integration.agent.manager.AgentModelManager;
+import cn.nuaa.jensonxu.fairy.integration.agent.memory.hook.AgentSummarizationHook;
+import cn.nuaa.jensonxu.fairy.integration.agent.memory.hook.LongTermMemoryInterceptor;
+import cn.nuaa.jensonxu.fairy.integration.agent.memory.hook.ShortTermRedisSaveHook;
+import cn.nuaa.jensonxu.fairy.integration.agent.model.manager.AgentModelManager;
 import cn.nuaa.jensonxu.fairy.integration.agent.memory.AgentLoadedContext;
 
+import cn.nuaa.jensonxu.fairy.integration.agent.memory.AgentLongTermMemory;
 import com.alibaba.cloud.ai.graph.RunnableConfig;
 import com.alibaba.cloud.ai.graph.agent.ReactAgent;
+import com.alibaba.cloud.ai.graph.agent.hook.Hook;
+import com.alibaba.cloud.ai.graph.agent.interceptor.Interceptor;
 import com.alibaba.cloud.ai.graph.checkpoint.Checkpoint;
 import com.alibaba.cloud.ai.graph.checkpoint.savers.MemorySaver;
 
@@ -33,26 +39,35 @@ public class AgentClientBuilder {
     private final ToolCallbackProvider toolCallbackProvider;
     private final AgentProperties agentProperties;
     private final MemorySaver memorySaver;
+    private final AgentSummarizationHook agentSummarizationHook;
+    private final ShortTermRedisSaveHook shortTermRedisSaveHook;
+    private final AgentLongTermMemory agentLongTermMemory;
+
 
     /**
      * 根据请求上下文构建 ReactAgent
      *
      * @param modelName 请求指定的模型名称，为空时回退到 defaultModel
      * @param sessionId 会话 ID（agentSessionId），用于 MemorySaver 的 threadId 隔离
+     * @param userId    用户 ID，用于创建 LongTermMemoryInterceptor
      * @param context   由 AgentMemoryManager.loadContext() 加载的记忆上下文
      * @return 已注入工具、记忆、System Prompt 的 ReactAgent 实例
      */
-    public ReactAgent build(String modelName, String sessionId, AgentLoadedContext context) {
+    public ReactAgent build(String modelName, String sessionId, String userId, AgentLoadedContext context) {
         String resolvedName = StringUtils.isNotBlank(modelName) ? modelName : agentProperties.getDefaultModel();
         log.info("[agent] 构建 ReactAgent, modelName: {}, sessionId: {}", resolvedName, sessionId);
         prepopulateIfNeeded(sessionId, context.shortTermMessages());  // 若 MemorySaver 中尚无该会话的记录（进程重启），从 Redis/MySQL 回填历史消息
-        ReactAgent agent = agentModelManager.createAgent(resolvedName, toolCallbackProvider.getToolCallbacks(), memorySaver);  // 创建 ReactAgent，注入共享 MemorySaver
+        LongTermMemoryInterceptor memInterceptor = new LongTermMemoryInterceptor(agentLongTermMemory, userId);
+        List<Hook> hooks = List.of(agentSummarizationHook, shortTermRedisSaveHook);
+        List<Interceptor> interceptors = List.of(memInterceptor);
 
+        /*
         if (StringUtils.isNotBlank(context.systemPromptPrefix())) {
             agent.setSystemPrompt(context.systemPromptPrefix());  // 注入长期记忆前缀到 System Prompt
         }
+        */
 
-        return agent;
+        return agentModelManager.createAgent(resolvedName, toolCallbackProvider.getToolCallbacks(), memorySaver, hooks, interceptors);
     }
 
     /**

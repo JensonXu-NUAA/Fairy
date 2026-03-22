@@ -87,3 +87,6 @@ fairy:
         max-concurrent: 20        # 最大并发 Agent 请求数
         acquire-timeout-ms: 5000  # 等待获取许可的超时时间（毫秒）
 
+logging:
+  level:
+    cn.nuaa.jensonxu.fairy: debug

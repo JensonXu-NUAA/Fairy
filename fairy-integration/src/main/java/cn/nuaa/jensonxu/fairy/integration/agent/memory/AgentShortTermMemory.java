@@ -84,6 +84,31 @@ public class AgentShortTermMemory {
         return evicted;
     }
 
+    /**
+     * 用压缩后的消息列表替换 Redis 中的原始消息列表
+     * 供 AgentSummarizationHook 在 BEFORE_MODEL 阶段同步压缩结果使用
+     *
+     * @param sessionId 会话 ID
+     * @param messages  压缩后的消息列表（summaryMsg + 近期 N 条）
+     */
+    public void replaceMessages(String sessionId, List<Message> messages) {
+        if (messages == null || messages.isEmpty()) {
+            return;
+        }
+        try {
+            String key = buildKey(sessionId);
+            int ttlHours = agentProperties.getMemory().getShortTerm().getTtlHours();
+            List<String> serialized = messages.stream().map(this::serialize).toList();
+
+            // DEL → RPUSH → EXPIRE，原子性替换整个 List
+            redisUtil.delete(key);
+            redisUtil.listRightPushAll(key, serialized.toArray(new Object[0]));
+            redisUtil.expire(key, ttlHours, TimeUnit.HOURS);
+        } catch (Exception e) {
+            log.warn("[agent] Redis 压缩消息替换失败, sessionId: {}", sessionId, e);
+        }
+    }
+
 
     /**
      * 读取会话消息列表
@@ -112,11 +137,7 @@ public class AgentShortTermMemory {
         try {
             int maxMessages = agentProperties.getMemory().getShortTerm().getMaxMessages();
             int ttlHours = agentProperties.getMemory().getShortTerm().getTtlHours();
-
-            List<Message> toWrite = messages.size() > maxMessages
-                    ? messages.subList(messages.size() - maxMessages, messages.size())
-                    : messages;
-
+            List<Message> toWrite = messages.size() > maxMessages ? messages.subList(messages.size() - maxMessages, messages.size()) : messages;
             List<String> serialized = toWrite.stream().map(this::serialize).toList();
             redisUtil.listRightPushAll(key, serialized.toArray(new Object[0]));
             redisUtil.expire(key, ttlHours, TimeUnit.HOURS);

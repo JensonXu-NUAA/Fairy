@@ -1,8 +1,10 @@
-package cn.nuaa.jensonxu.fairy.integration.agent.manager;
+package cn.nuaa.jensonxu.fairy.integration.agent.model.manager;
 
 import cn.nuaa.jensonxu.fairy.common.data.llm.ModelConfig;
 
 import com.alibaba.cloud.ai.graph.agent.ReactAgent;
+import com.alibaba.cloud.ai.graph.agent.hook.Hook;
+import com.alibaba.cloud.ai.graph.agent.interceptor.Interceptor;
 import com.alibaba.cloud.ai.graph.checkpoint.BaseCheckpointSaver;
 import com.alibaba.cloud.nacos.NacosConfigManager;
 import com.alibaba.fastjson2.JSON;
@@ -18,6 +20,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -182,12 +185,12 @@ public class AgentModelManager {
      * @param toolCallbacks 由 ToolCallbackProvider 提供的工具回调数组
      * @return 配置好模型和工具的 ReactAgent 实例
      */
-    public ReactAgent createAgent(String modelName, ToolCallback[] toolCallbacks, BaseCheckpointSaver saver) {
+    public ReactAgent createAgent(String modelName, ToolCallback[] toolCallbacks, BaseCheckpointSaver saver, List<Hook> hooks, List<Interceptor> interceptors) {
         ModelConfig modelConfig = AgentModels.get(modelName);
         if (modelConfig == null) {
             throw new IllegalArgumentException("[agent] 未找到模型配置，modelName: " + modelName);
         }
         log.info("[agent] 创建 ReactAgent，modelName: {}", modelName);
-        return factoryManager.createAgent(modelConfig, toolCallbacks, saver);
+        return factoryManager.createAgent(modelConfig, toolCallbacks, saver, hooks, interceptors);
     }
 }

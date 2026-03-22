@@ -97,6 +97,7 @@ public class AgentHandler {
             // 传入 threadId，激活 MemorySaver 的跨轮会话隔离
             RunnableConfig runnableConfig = RunnableConfig.builder()
                     .threadId(agentChatDTO.getAgentSessionId())
+                    .addMetadata("user_id", agentChatDTO.getUserId())
                     .build();
 
             reactAgent.stream(agentChatDTO.getMessage(), runnableConfig)
@@ -111,7 +112,8 @@ public class AgentHandler {
                     .blockLast();
 
             // 流正常结束，持久化本轮对话消息
-            saveRoundMessages();
+            // saveRoundMessages();
+            log.info("[agent] 本轮完整回复 - agentSessionId: {}\n{}", agentChatDTO.getAgentSessionId(), assistantTextBuffer.toString());
             sendEnd();
 
         } catch (Exception e) {
