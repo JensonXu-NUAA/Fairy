@@ -16,15 +16,15 @@ import org.springframework.ai.chat.messages.SystemMessage;
 /**
  * 长期记忆动态注入拦截器（ModelInterceptor）
  * 在每次模型调用前，从 MySQL 读取最新长期记忆并动态注入 System Prompt 前缀
- * 替代 AgentClientBuilder.build() 中一次性的 setSystemPrompt() 调用
- *
- * 注意：非 Spring 单例 Bean，由 AgentClientBuilder 按请求创建（userId 作为构造参数传入）
  */
 @Slf4j
 public class LongTermMemoryInterceptor extends ModelInterceptor {
 
-    private final AgentLongTermMemory longTermMemory;
     private final String userId;
+    private final AgentLongTermMemory longTermMemory;
+
+    private volatile boolean prefixLoaded = false;  // 同一个拦截器实例内只查询一次 MySQL
+    private volatile String cachedPrefix;
 
     public LongTermMemoryInterceptor(AgentLongTermMemory longTermMemory, String userId) {
         this.longTermMemory = longTermMemory;
@@ -33,23 +33,26 @@ public class LongTermMemoryInterceptor extends ModelInterceptor {
 
     @Override
     public ModelResponse interceptModel(ModelRequest request, ModelCallHandler handler) {
-        String prefix = longTermMemory.buildSystemPromptPrefix(userId);
+        if(!prefixLoaded) {
+            cachedPrefix = longTermMemory.buildSystemPromptPrefix(userId);
+            prefixLoaded = true;
+            log.debug("[long-term-interceptor] 首次加载长期记忆前缀, userId: {}, 长度: {} 字符", userId, cachedPrefix != null ? cachedPrefix.length() : 0);
+        }
 
-        if (StringUtils.isBlank(prefix)) {
+        if (StringUtils.isBlank(cachedPrefix)) {
             return handler.call(request);
         }
 
         // 将长期记忆前缀拼接到现有 SystemMessage 头部
         SystemMessage currentSysMsg = request.getSystemMessage();
         String currentContent = currentSysMsg != null ? currentSysMsg.getText() : "";
-        String newContent = prefix + currentContent;
+        String newContent = cachedPrefix + currentContent;
 
         ModelRequest enriched = ModelRequest.builder(request)
                 .systemMessage(new SystemMessage(newContent))
                 .build();
 
-        log.debug("[long-term-interceptor] 注入长期记忆前缀, userId: {}, 前缀长度: {} 字符",
-                userId, prefix.length());
+        log.debug("[long-term-interceptor] 注入长期记忆前缀, userId: {}, 前缀长度: {} 字符", userId, cachedPrefix.length());
 
         return handler.call(enriched);
     }
