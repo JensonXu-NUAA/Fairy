@@ -1,4 +1,4 @@
-package cn.nuaa.jensonxu.fairy.integration.chat.factory;
+package cn.nuaa.jensonxu.fairy.integration.chat.model.factory;
 
 import cn.nuaa.jensonxu.fairy.common.data.llm.ModelConfig;
 import cn.nuaa.jensonxu.fairy.common.repository.minio.MinioProperties;

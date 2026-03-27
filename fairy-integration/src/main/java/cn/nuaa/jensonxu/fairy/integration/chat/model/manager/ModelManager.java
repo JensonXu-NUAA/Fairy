@@ -1,4 +1,4 @@
-package cn.nuaa.jensonxu.fairy.integration.chat.manager;
+package cn.nuaa.jensonxu.fairy.integration.chat.model.manager;
 
 import cn.nuaa.jensonxu.fairy.common.data.llm.ModelConfig;
 

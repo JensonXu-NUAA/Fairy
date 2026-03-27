@@ -45,6 +45,7 @@
         <tika.version>2.9.1</tika.version>
         <pdfbox.version>3.0.1</pdfbox.version>
         <poi.version>5.2.5</poi.version>
+        <redisson.version>3.45.0</redisson.version>
     </properties>
 
     <dependencyManagement>
@@ -101,6 +102,12 @@
                 <groupId>org.apache.rocketmq</groupId>
                 <artifactId>rocketmq-spring-boot-starter</artifactId>
                 <version>${rocketmq.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.redisson</groupId>
+                <artifactId>redisson-spring-boot-starter</artifactId>
+                <version>${redisson.version}</version>
             </dependency>
 
             <dependency>

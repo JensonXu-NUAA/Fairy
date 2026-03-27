@@ -3,7 +3,7 @@ package cn.nuaa.jensonxu.fairy.service.chat;
 import cn.nuaa.jensonxu.fairy.integration.chat.handler.CustomModelClientHandler;
 import cn.nuaa.jensonxu.fairy.common.data.llm.CustomChatDTO;
 
-import cn.nuaa.jensonxu.fairy.integration.chat.manager.ModelManager;
+import cn.nuaa.jensonxu.fairy.integration.chat.model.manager.ModelManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 

@@ -1,6 +1,6 @@
-package cn.nuaa.jensonxu.fairy.integration.service.mcp.service;
+package cn.nuaa.jensonxu.fairy.integration.service.tools.service;
 
-import cn.nuaa.jensonxu.fairy.integration.service.mcp.utils.ArxivUtils;
+import cn.nuaa.jensonxu.fairy.integration.service.tools.utils.ArxivUtils;
 
 import com.rometools.rome.feed.synd.SyndEntry;
 import com.rometools.rome.feed.synd.SyndFeed;

@@ -1,7 +1,7 @@
-package cn.nuaa.jensonxu.fairy.integration.chat.manager;
+package cn.nuaa.jensonxu.fairy.integration.chat.model.manager;
 
 import cn.nuaa.jensonxu.fairy.common.data.llm.ModelConfig;
-import cn.nuaa.jensonxu.fairy.integration.chat.factory.BaseChatClientFactory;
+import cn.nuaa.jensonxu.fairy.integration.chat.model.factory.BaseChatClientFactory;
 
 import com.alibaba.fastjson2.JSON;
 
