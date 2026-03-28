@@ -1,51 +1,151 @@
-# Fairy
+<div align="center">
 
-## 项目简介
+# ✨ Fairy
 
-Fairy是一个基于Spring Boot 3.2和Spring AI的智能聊天应用框架，集成了多种大语言模型，提供流式聊天服务。项目采用微服务架构设计，支持动态模型配置和Nacos配置中心。
+**基于 Spring AI 的智能 Agent 应用框架**
+
+[![Java](https://img.shields.io/badge/Java-21-orange.svg)](https://openjdk.org/)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.4.1-brightgreen.svg)](https://spring.io/projects/spring-boot)
+[![Spring AI](https://img.shields.io/badge/Spring%20AI-1.1.2-blue.svg)](https://spring.io/projects/spring-ai)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+
+</div>
+
+---
+
+## 📖 项目简介
+
+Fairy 是一个基于 **Spring Boot 3.4** 和 **Spring AI 1.1.2** 的智能 AI 应用框架，集成了多模型聊天、ReAct Agent、智能记忆管理、RAG 文档处理与文件管理等核心能力。项目采用分层多模块架构，通过 Nacos 实现模型配置的动态热更新，支持 DashScope（通义千问）、DeepSeek、智谱 AI 等多个大模型提供商。
+
+---
 
 ## ✨ 核心特性
 
-- 🤖 **多模型支持**: 集成多种大语言模型，支持阿里云通义千问等主流AI模型
-- 🔄 **流式响应**: 基于SSE(Server-Sent Events)实现实时流式聊天体验
-- ⚙️ **动态配置**: 通过Nacos配置中心实现模型参数的动态更新，无需重启服务
-- 🏗️ **微服务架构**: 采用多模块设计，包括web、service、repository、integration四个核心模块
-- 💾 **数据持久化**: 支持MySQL和Redis，实现聊天记录的存储和缓存
-- 🧠 **智能记忆**: 内置聊天记忆功能，支持上下文对话管理
+### 🤖 多模型 LLM 集成
+- 支持 **DashScope（通义千问）**、**DeepSeek**、**智谱 AI（GLM）** 等多个提供商
+- 基于 Nacos 的模型配置动态热更新，无需重启服务
+- 独立的 Chat / Agent 双工厂体系，职责清晰、互不干扰
+
+### 🧠 ReAct Agent 框架
+- 基于 Spring AI Alibaba `ReactAgent` 构建，支持 **Think → Act → Observe** 推理循环
+- 内置工具调用（Tool Calling）与 MCP 协议支持
+- 流式推送 Agent 推理全过程：思考链（Thinking）、工具调用、最终答案
+- 基于 Semaphore 的并发控制，防止资源耗尽
+- Java 21 虚拟线程驱动，高并发低开销
+
+### 💾 智能记忆管理
+- **短期记忆**：Redis 滑动窗口 + MySQL 持久化，支持服务重启后历史回填
+- **长期记忆**：LLM 驱动的自动摘要提炼，注入 System Prompt 实现跨会话记忆
+- **双触发机制**：滑动窗口淘汰 + 会话结束，确保记忆不丢失
+
+### 📄 RAG 文档处理
+- 支持 PDF、Office（Word/Excel/PPT）等多格式文档解析（Tika + PDFBox + POI）
+- PDF 结构化解析，支持图文混合提取
+- 多种分块策略：纯文本分块、图文混合分块
+- Token 计数与分块元数据管理
+
+### 📁 文件管理
+- 基于 **MinIO** 的对象存储，支持上传、下载、删除
+- 大文件**分片上传**：初始化 → 分片上传 → 状态查询 → 合并
+- 基于 **RocketMQ** 的异步文件处理
+
+### 🔄 流式响应
+- 全链路 SSE（Server-Sent Events）流式输出
+- Chat 与 Agent 独立的 SSE 事件体系
+- 丰富的 SSE 事件类型覆盖完整的推理生命周期
+
+---
 
 ## 🏛️ 技术架构
 
 ### 核心技术栈
 
-- **Spring Boot 3.2.11**: 现代化的Java应用开发框架
-- **Spring Cloud 2023.0.3**: 微服务架构支持
-- **Spring AI**: AI应用开发框架
-- **Spring Cloud Alibaba 2023.0.1.2**: 阿里云生态集成
-- **MyBatis Plus 3.5.5**: 数据访问层框架
-- **MySQL 8.3.0**: 关系型数据库
-- **Redis**: 缓存和会话存储
-- **Nacos**: 配置中心和服务发现
-- **Java 21**: 最新Java特性支持
+| 类别 | 技术 | 版本 |
+|------|------|------|
+| **基础框架** | Spring Boot | 3.4.1 |
+| **AI 框架** | Spring AI | 1.1.2 |
+| **AI 扩展** | Spring AI Alibaba | 1.1.2.0 |
+| **微服务** | Spring Cloud | 2024.0.1 |
+| **微服务扩展** | Spring Cloud Alibaba | 2025.0.0.0 |
+| **ORM** | MyBatis Plus | 3.5.5 |
+| **数据库** | MySQL | 8.3.0 |
+| **缓存** | Redis + Redisson | 3.45.0 |
+| **配置中心** | Nacos | 3.1.1 |
+| **对象存储** | MinIO | 8.5.7 |
+| **消息队列** | RocketMQ | 2.3.1 |
+| **本地缓存** | Caffeine | 3.1.8 |
+| **文档解析** | Apache Tika / PDFBox / POI | 2.9.1 / 3.0.1 / 5.2.5 |
+| **JDK** | Java | 21 |
 
 ### 模块结构
 
 ```
 fairy/
-├── fairy-web/           # Web层 - REST API接口
-├── fairy-service/       # 业务逻辑层 - 核心业务服务
-├── fairy-repository/    # 数据访问层 - 数据存储操作
-└── fairy-integration/   # 集成层 - 外部系统集成
+├── fairy-web/              # Web 层 — REST API 接口（Controller）
+├── fairy-service/          # 业务层 — 核心业务编排（ChatService, AgentService, FileService 等）
+├── fairy-integration/      # 集成层 — 外部系统集成（AI 模型、RAG、Agent、工具）
+│   ├── agent/              #   Agent 模块（ReactAgent 构建、推理执行、并发控制）
+│   ├── chat/               #   Chat 模块（模型工厂、聊天处理、记忆 Advisor）
+│   └── service/
+│       ├── rag/            #   RAG 模块（文档分块策略）
+│       └── tools/          #   工具模块（MCP 注册、论文搜索、时间服务等）
+├── fairy-common/           # 公共层 — 数据模型、仓库、解析器、中间件
+│   ├── data/               #   DTO / VO 数据载体
+│   ├── repository/         #   数据仓库（MySQL, Redis, MinIO, Caffeine）
+│   ├── parser/             #   文档/图片解析器
+│   ├── file/               #   文件处理抽象
+│   └── rocketmq/           #   RocketMQ 基础设施
+└── docs/                   # 设计文档
 ```
+
+### 架构总览
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│                       fairy-web (Controller)                 │
+│   AgentController  │  ChatController  │  FileController      │
+└───────────┬────────┴────────┬─────────┴────────┬────────────┘
+            │                 │                  │
+┌───────────▼─────────────────▼──────────────────▼────────────┐
+│                     fairy-service (业务编排)                  │
+│   AgentService  │  ChatService  │  FileService  │  RAG       │
+└───────────┬────────┬───────────┬────────────────────────────┘
+            │        │           │
+┌───────────▼────────▼───────────▼────────────────────────────┐
+│                  fairy-integration (外部集成)                 │
+│                                                              │
+│  ┌─────────────┐  ┌──────────────┐  ┌────────────────────┐  │
+│  │ Agent 模块   │  │  Chat 模块    │  │  RAG / Tools       │  │
+│  │ ┌─────────┐ │  │ ┌──────────┐ │  │ ┌────────────────┐ │  │
+│  │ │Factory  │ │  │ │ Factory  │ │  │ │ DocumentParser │ │  │
+│  │ │Manager  │ │  │ │ Manager  │ │  │ │ DocumentChunker│ │  │
+│  │ └─────────┘ │  │ └──────────┘ │  │ │ MCP / Tools    │ │  │
+│  │ ┌─────────┐ │  │ ┌──────────┐ │  │ └────────────────┘ │  │
+│  │ │Handler  │ │  │ │ Handler  │ │  └────────────────────┘  │
+│  │ │Builder  │ │  │ │ Advisor  │ │                           │
+│  │ │Memory   │ │  │ │ Memory   │ │                           │
+│  │ └─────────┘ │  │ └──────────┘ │                           │
+│  └─────────────┘  └──────────────┘                           │
+└──────────────────────────┬───────────────────────────────────┘
+                           │
+┌──────────────────────────▼───────────────────────────────────┐
+│                     fairy-common (公共基础)                    │
+│   DTO/VO  │  MySQL Repository  │  Redis  │  MinIO  │  MQ    │
+└──────────────────────────────────────────────────────────────┘
+```
+
+---
 
 ## 🚀 快速开始
 
 ### 环境要求
 
-- JDK 21+
-- Maven 3.6+
-- MySQL 8.0+
-- Redis 6.0+
-- Nacos 2.0+
+- **JDK 21+**
+- **Maven 3.6+**
+- **MySQL 8.0+**
+- **Redis 6.0+**
+- **Nacos 2.0+**
+- **MinIO**（可选，文件存储）
 
 ### 安装步骤
 
@@ -57,43 +157,68 @@ fairy/
 
 2. **配置数据库**
    ```sql
-   -- 创建数据库
    CREATE DATABASE fairy DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
    ```
 
-3. **配置Nacos**
-   - 启动Nacos服务器
-   - 在Nacos中创建配置文件 `llm_config.json`，分组为 `GENSOKYO_AI_GROUP`
-   - 配置示例：
+3. **配置 Nacos**
+   - 启动 Nacos 服务器
+   - 创建 Agent 模型配置 `fairy_agent_config`，分组 `FAIRY_LLM_GROUP`：
    ```json
    {
-     "qwen-turbo": {
-       "provider": "alibaba",
-       "apiKey": "your-api-key",
-       "model": "qwen-turbo",
+     "qwen3.5-plus": {
+       "provider": "dashscope",
+       "apiKey": "your-dashscope-api-key",
+       "model": "qwen3.5-plus",
        "temperature": 0.7,
-       "maxTokens": 2000
+       "maxTokens": 4096
+     },
+     "deepseek-chat": {
+       "provider": "deepseek",
+       "apiKey": "your-deepseek-api-key",
+       "model": "deepseek-chat",
+       "temperature": 0.7
+     },
+     "glm-4-flash": {
+       "provider": "zhipuai",
+       "apiKey": "your-zhipuai-api-key",
+       "model": "glm-4-flash",
+       "temperature": 0.7
      }
    }
    ```
 
-4. **启动应用**
+4. **修改应用配置**
+
+   编辑 `fairy-web/src/main/resources/application.yml`，配置数据库、Redis、MinIO、Nacos 等连接信息。
+
+5. **构建并启动**
    ```bash
-   mvn clean install
+   mvn clean install -DskipTests
    mvn spring-boot:run -pl fairy-web
    ```
 
-5. **访问应用**
-   - 应用地址: http://localhost:8080
-   - 聊天接口: POST /chat/stream
+6. **验证服务**
+   ```bash
+   # 聊天接口测试
+   curl -X POST http://localhost:12100/chat/stream \
+     -H "Content-Type: application/json" \
+     -d '{"userId": "test", "message": "你好", "modelName": "qwen-turbo"}'
 
-## 📖 API文档
+   # Agent 接口测试
+   curl -X POST http://localhost:12100/agent/chat \
+     -H "Content-Type: application/json" \
+     -d '{"userId": "test", "message": "帮我搜索最新的AI论文"}'
+   ```
 
-### 流式聊天接口
+---
 
-**接口地址**: `POST /chat/stream`
+## 📖 API 文档
 
-**请求格式**:
+### 1. 聊天接口
+
+#### `POST /chat/stream` — 流式聊天
+
+**请求体**：
 ```json
 {
   "userId": "user123",
@@ -103,91 +228,164 @@ fairy/
 }
 ```
 
-**响应格式**: Server-Sent Events (SSE) 流式响应
+**响应**：SSE 流式文本事件
 
-**请求示例**:
-```bash
-curl -X POST http://localhost:8080/chat/stream \
-  -H "Content-Type: application/json" \
-  -d '{
-    "userId": "user123",
-    "conversationId": "conv456", 
-    "message": "你好",
-    "modelName": "qwen-turbo"
-  }'
-```
+---
 
-## 🔧 配置说明
+### 2. Agent 接口
 
-### 应用配置
+#### `POST /agent/chat` — Agent 流式对话
 
-主要配置文件位于 `fairy-web/src/main/resources/application.yml`：
-
-```yaml
-spring:
-  cloud:
-    nacos:
-      config:
-        server-addr: localhost:8848
-        extension-configs:
-          - data-id: llm_config.json
-            group: GENSOKYO_AI_GROUP
-```
-
-### 模型配置
-
-在Nacos中配置支持的AI模型参数：
-
+**请求体**：
 ```json
 {
-  "model-name": {
-    "provider": "alibaba",
-    "apiKey": "your-api-key",
-    "model": "model-id",
-    "temperature": 0.7,
-    "maxTokens": 2000
-  }
+  "userId": "user123",
+  "message": "帮我搜索关于大语言模型的最新论文",
+  "modelName": "qwen3.5-plus",
+  "maxIterations": 10
 }
 ```
 
-## 🎯 核心功能
+**SSE 事件序列**：
 
-### 1. 智能聊天
-- 支持多轮对话，具备上下文记忆能力
-- 实时流式响应，提供流畅的聊天体验
-- 支持多种AI模型切换
+| 事件类型 | 说明 |
+|---------|------|
+| `agent_start` | Agent 任务启动 |
+| `agent_thinking` | LLM 思考过程（Chain-of-Thought） |
+| `agent_tool_call` | Agent 决定调用工具（含工具名和参数） |
+| `agent_tool_result` | 工具执行结果返回 |
+| `agent_answer` | 最终答案（流式分块推送） |
+| `agent_end` | Agent 任务完成 |
+| `agent_error` | 执行异常（含 429 限流提示） |
+| `[DONE]` | 流结束标记 |
 
-### 2. 动态模型管理
-- 通过Nacos实现模型配置的动态更新
-- 支持热加载，无需重启服务
-- 模型参数灵活配置
+---
 
-### 3. 数据持久化
-- 聊天记录存储到MySQL数据库
-- 支持用户会话管理
-- Redis缓存提升性能
+### 3. 文件接口
 
-## 🛠️ 开发指南
+| 接口 | 方法 | 说明 |
+|------|------|------|
+| `/api/file/upload` | POST | 上传文件（MultipartFile） |
+| `/api/file/download?fileId=xxx` | GET | 下载文件 |
+| `/api/file/delete/{fileId}` | DELETE | 删除文件 |
 
-### 项目结构说明
+### 4. 分片上传接口
 
-- **fairy-web**: 提供REST API接口，处理HTTP请求
-- **fairy-service**: 核心业务逻辑，包括聊天服务、用户服务等
-- **fairy-repository**: 数据访问层，封装数据库操作
-- **fairy-integration**: 外部系统集成，包括AI模型集成、消息队列等
+| 接口 | 方法 | 说明 |
+|------|------|------|
+| `/api/chunk/init` | POST | 初始化分片上传（MD5 秒传支持） |
+| `/api/chunk/upload` | POST | 上传单个分片 |
+| `/api/chunk/status` | GET | 查询分片上传状态 |
+| `/api/chunk/merge` | POST | 合并所有分片 |
 
-### 添加新的AI模型
+---
 
-1. 在Nacos配置中添加新模型配置
-2. 在`ChatClientFactoryManager`中实现对应的工厂类
-3. 重启应用或等待配置自动更新
+## 🧠 Agent 记忆系统
 
-### 扩展功能
+Fairy Agent 内置了完整的双层记忆架构：
 
-项目采用模块化设计，便于功能扩展：
-- 在对应模块添加新的服务类
-- 在Controller层添加新的API接口
-- 在Repository层添加数据访问逻辑
+```
+                    ┌─────────────────────────────┐
+                    │       AgentMemoryManager     │
+                    │      （统一编排入口）          │
+                    └──────────┬──────────────────┘
+                               │
+                ┌──────────────┴──────────────┐
+                ▼                              ▼
+   ┌────────────────────┐         ┌────────────────────┐
+   │   短期记忆          │         │   长期记忆          │
+   │  AgentShortTerm    │         │  AgentLongTerm     │
+   │  AgentMemory       │         │  AgentMemory       │
+   ├────────────────────┤         ├────────────────────┤
+   │ • Redis 滑动窗口   │         │ • MySQL 持久化     │
+   │ • MySQL 消息持久化  │         │ • LLM 摘要提炼     │
+   │ • 服务重启历史回填  │         │ • System Prompt 注入│
+   │ • 可配置窗口大小/TTL│         │ • 重要性评分        │
+   └────────────────────┘         └────────────────────┘
+                │                              │
+                │    触发摘要（双触发机制）       │
+                ├──── ① 滑动窗口淘汰消息 ──────►│
+                └──── ② 会话结束剩余消息 ──────►│
+```
+
+---
+
+## ⚙️ 配置说明
+
+核心配置位于 `fairy-web/src/main/resources/application.yml`：
+
+```yaml
+fairy:
+  agent:
+    default-model: qwen3.5-plus       # Agent 默认模型
+    max-iterations: 10                 # ReAct 最大迭代次数
+    stream-thinking: true              # 是否推送思考过程
+    max-history-size: 10               # 历史消息保留轮次
+    memory:
+      short-term:
+        max-messages: 20               # 短期记忆滑动窗口大小
+        ttl-hours: 24                  # Redis key 过期时间
+      long-term:
+        summarize-threshold: 20        # 摘要触发阈值
+        max-facts-per-user: 50         # 每用户最大记忆条数
+        model-name: qwen3.5-flash      # 摘要专用模型
+      concurrency:
+        max-concurrent: 20             # 最大并发 Agent 请求数
+        acquire-timeout-ms: 5000       # 等待超时时间
+```
+
+---
+
+## 📁 设计文档
+
+| 文档 | 说明 |
+|------|------|
+| [Agent 架构设计方案](docs/Agent-架构设计方案.md) | Agent 模块完整架构、数据流、各组件设计细节 |
+| [Agent 记忆管理设计方案](docs/Agent-记忆管理设计方案.md) | 双层记忆系统设计、摘要机制、持久化策略 |
+| [RAG 开发文档](docs/RAG-开发文档.md) | RAG 文档处理与分块策略开发指南 |
+| [RAG 测试文档](docs/RAG-测试文档.md) | RAG 功能测试方案与结果 |
+| [PDFBox 结构化解析接入说明](docs/PDFBox-结构化解析接入说明.md) | PDF 结构化解析实现细节 |
+
+---
+
+## 🛠️ 扩展指南
+
+### 添加新的 AI 模型提供商
+
+1. 在 Nacos 配置中添加新模型定义（指定 `provider` 字段）
+2. 在 `fairy-integration` 的 `agent/model/factory/` 下新建工厂类：
+
+```java
+@Slf4j
+@Component
+public class NewProviderAgentModelFactory extends BaseAgentModelFactory {
+
+    @Override
+    public boolean supports(String provider) {
+        return "new-provider".equals(provider);
+    }
+
+    @Override
+    public String getProviderName() {
+        return "new-provider";
+    }
+
+    @Override
+    public ReactAgent createAgent(ModelConfig modelConfig,
+                                   ToolCallback[] tools,
+                                   BaseCheckpointSaver saver) {
+        // 构建 ChatModel → ReactAgent
+    }
+}
+```
+
+3. 重启应用或等待 Nacos 配置自动刷新
+
+### 添加新的 Agent 工具
+
+实现 Spring AI 的 `ToolCallbackProvider` 或使用 `@Tool` 注解，工具将自动注册到 Agent 的工具集中。
+
+---
 
 ## 🤝 贡献指南
 
@@ -199,9 +397,13 @@ spring:
 4. 推送到分支 (`git push origin feature/AmazingFeature`)
 5. 打开 Pull Request
 
+---
+
 ## 📄 许可证
 
-本项目采用 MIT 许可证 - 查看 [LICENSE](LICENSE) 文件了解详情
+本项目采用 MIT 许可证 - 查看 [LICENSE](LICENSE) 文件了解详情。
+
+---
 
 ## 👥 作者
 
@@ -209,11 +411,15 @@ spring:
 
 ## 🙏 致谢
 
-- [Spring AI](https://spring.io/projects/spring-ai) - 提供AI应用开发框架
-- [Spring Cloud Alibaba](https://github.com/alibaba/spring-cloud-alibaba) - 提供阿里云集成支持
-- [Nacos](https://nacos.io/) - 提供配置中心和服务发现
+- [Spring AI](https://spring.io/projects/spring-ai) — AI 应用开发框架
+- [Spring AI Alibaba](https://github.com/alibaba/spring-ai-alibaba) — 阿里云 AI 扩展及 Agent 框架
+- [Nacos](https://nacos.io/) — 配置中心和服务发现
 - 所有为开源社区做出贡献的开发者们
 
 ---
 
+<div align="center">
+
 如果这个项目对您有帮助，请给我们一个 ⭐️ Star！
+
+</div>

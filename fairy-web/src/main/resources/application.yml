@@ -90,3 +90,7 @@ fairy:
 logging:
   level:
     cn.nuaa.jensonxu.fairy: debug
+
+bangumi:
+  api:
+    token: kx9o2KriupdjKiqdLtikedkYydivgwQK18cXKhAa
