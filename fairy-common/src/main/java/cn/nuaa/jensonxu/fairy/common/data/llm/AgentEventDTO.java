@@ -88,5 +88,16 @@ public class AgentEventDTO {
                 .timestamp(System.currentTimeMillis())
                 .build();
     }
+
+    /** 快速构建技能加载事件（agent_skill_load） */
+    public static AgentEventDTO ofSkillLoad(String skillName, String agentSessionId, int iterationIndex) {
+        return AgentEventDTO.builder()
+                .eventType("agent_skill_load")
+                .content(skillName)
+                .agentSessionId(agentSessionId)
+                .iterationIndex(iterationIndex)
+                .timestamp(System.currentTimeMillis())
+                .build();
+    }
 }
 

@@ -139,8 +139,7 @@ public class AgentHandler {
                     Object reasoningContent = assistantMessage.getMetadata().get("reasoningContent");
                     if (reasoningContent != null && StringUtils.isNotBlank(reasoningContent.toString())) {
                         if (agentProperties.isStreamThinking()) {
-                            AgentEventDTO event = AgentEventDTO.ofContent(AgentSseEventType.AGENT_THINKING,
-                                    reasoningContent.toString(), agentChatDTO.getAgentSessionId());
+                            AgentEventDTO event = AgentEventDTO.ofContent(AgentSseEventType.AGENT_THINKING, reasoningContent.toString(), agentChatDTO.getAgentSessionId());
                             sendSseEvent(AgentSseEventType.AGENT_THINKING, JSON.toJSONString(event));
                         }
                     } else {
@@ -148,8 +147,7 @@ public class AgentHandler {
                         if (StringUtils.isNotBlank(text)) {
                             // 累积 Assistant 回复，推理结束后一并写入记忆
                             assistantTextBuffer.append(text);
-                            AgentEventDTO event = AgentEventDTO.ofContent(AgentSseEventType.AGENT_ANSWER,
-                                    text, agentChatDTO.getAgentSessionId());
+                            AgentEventDTO event = AgentEventDTO.ofContent(AgentSseEventType.AGENT_ANSWER, text, agentChatDTO.getAgentSessionId());
                             sendSseEvent(AgentSseEventType.AGENT_ANSWER, JSON.toJSONString(event));
                         }
                     }
@@ -159,9 +157,14 @@ public class AgentHandler {
             case AGENT_MODEL_FINISHED -> {
                 if (message instanceof AssistantMessage assistantMessage && assistantMessage.hasToolCalls()) {
                     for (AssistantMessage.ToolCall toolCall : assistantMessage.getToolCalls()) {
-                        AgentEventDTO event = AgentEventDTO.ofToolCall(toolCall.name(), toolCall.arguments(),
-                                agentChatDTO.getAgentSessionId(), chunkId);
-                        sendSseEvent(AgentSseEventType.AGENT_TOOL_CALL, JSON.toJSONString(event));
+                        if ("read_skill".equals(toolCall.name())) {
+                            String skillName = extractSkillName(toolCall.arguments());
+                            AgentEventDTO event = AgentEventDTO.ofSkillLoad(skillName, agentChatDTO.getAgentSessionId(), chunkId);
+                            sendSseEvent(AgentSseEventType.AGENT_SKILL_LOAD, JSON.toJSONString(event));
+                        } else {
+                            AgentEventDTO event = AgentEventDTO.ofToolCall(toolCall.name(), toolCall.arguments(), agentChatDTO.getAgentSessionId(), chunkId);
+                            sendSseEvent(AgentSseEventType.AGENT_TOOL_CALL, JSON.toJSONString(event));
+                        }
                     }
                 }
             }
@@ -169,8 +172,10 @@ public class AgentHandler {
             case AGENT_TOOL_FINISHED -> {
                 if (message instanceof ToolResponseMessage toolResponse) {
                     for (ToolResponseMessage.ToolResponse response : toolResponse.getResponses()) {
-                        AgentEventDTO event = AgentEventDTO.ofToolResult(response.name(), response.responseData(),
-                                agentChatDTO.getAgentSessionId(), chunkId);
+                        if ("read_skill".equals(response.name())) {
+                            continue;  // skill 内容不下发前端
+                        }
+                        AgentEventDTO event = AgentEventDTO.ofToolResult(response.name(), response.responseData(), agentChatDTO.getAgentSessionId(), chunkId);
                         sendSseEvent(AgentSseEventType.AGENT_TOOL_RESULT, JSON.toJSONString(event));
                     }
                 }
@@ -260,5 +265,14 @@ public class AgentHandler {
                 .reconnectTime(3000L);
         sseEmitter.send(builder.build());
         chunkId++;
+    }
+
+    private String extractSkillName(String arguments) {
+        try {
+            return JSON.parseObject(arguments).getString("skill_name");
+        } catch (Exception e) {
+            log.warn("[agent] 解析 read_skill 参数失败: {}", arguments);
+            return "unknown";
+        }
     }
 }

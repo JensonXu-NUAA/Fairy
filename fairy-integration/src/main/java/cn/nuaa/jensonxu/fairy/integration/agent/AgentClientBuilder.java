@@ -13,6 +13,7 @@ import cn.nuaa.jensonxu.fairy.integration.agent.skill.MixedSkillRegistry;
 import cn.nuaa.jensonxu.fairy.integration.agent.skill.NativeSkillRegistry;
 import cn.nuaa.jensonxu.fairy.integration.agent.skill.UserSkillRegistry;
 
+import cn.nuaa.jensonxu.fairy.integration.service.tools.service.SkillToolService;
 import com.alibaba.cloud.ai.graph.RunnableConfig;
 import com.alibaba.cloud.ai.graph.agent.ReactAgent;
 import com.alibaba.cloud.ai.graph.agent.hook.Hook;
@@ -27,12 +28,12 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.ai.chat.messages.Message;
+import org.springframework.ai.tool.ToolCallback;
 import org.springframework.ai.tool.ToolCallbackProvider;
+import org.springframework.ai.tool.method.MethodToolCallbackProvider;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * Agent 构建器
@@ -56,6 +57,7 @@ public class AgentClientBuilder {
     private final AgentSkillRepository agentSkillRepository;
     private final MinioClient minioClient;
     private final MinioProperties minioProperties;
+    private final List<SkillToolService> skillToolServices;  // skill 列表
 
     /**
      * 根据请求上下文构建 ReactAgent
@@ -77,6 +79,7 @@ public class AgentClientBuilder {
         MixedSkillRegistry mixedSkillRegistry = new MixedSkillRegistry(nativeSkillRegistry, userSkillRegistry);
         SkillsAgentHook skillsAgentHook = SkillsAgentHook.builder()
                 .skillRegistry(mixedSkillRegistry)
+                .groupedTools(buildGroupedTools())
                 .build();
 
         List<Hook> hooks = List.of(skillsAgentHook, agentSummarizationHook, shortTermRedisSaveHook);
@@ -113,4 +116,21 @@ public class AgentClientBuilder {
             log.warn("[agent] MemorySaver 回填失败, sessionId: {}", sessionId, e);
         }
     }
+
+    /**
+     * 将 SkillToolService 实现类按 skillName 分组，构建 groupedTools
+     */
+    private Map<String, List<ToolCallback>> buildGroupedTools() {
+        Map<String, List<ToolCallback>> groupedTools = new HashMap<>();
+        for (SkillToolService skillTool : skillToolServices) {
+            ToolCallback[] callbacks = MethodToolCallbackProvider.builder()
+                    .toolObjects(skillTool)
+                    .build()
+                    .getToolCallbacks();
+            groupedTools.computeIfAbsent(skillTool.getSkillName(), k -> new ArrayList<>()).addAll(Arrays.asList(callbacks));
+        }
+        log.info("[skill] groupedTools 构建完成，共 {} 个 skill 绑定工具组", groupedTools.size());
+        return groupedTools;
+    }
+
 }
