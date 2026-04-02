@@ -1,19 +1,27 @@
 package cn.nuaa.jensonxu.fairy.integration.agent;
 
+import cn.nuaa.jensonxu.fairy.common.repository.minio.MinioProperties;
+import cn.nuaa.jensonxu.fairy.common.repository.mysql.AgentSkillRepository;
+
 import cn.nuaa.jensonxu.fairy.integration.agent.memory.hook.AgentSummarizationHook;
 import cn.nuaa.jensonxu.fairy.integration.agent.memory.hook.LongTermMemoryInterceptor;
 import cn.nuaa.jensonxu.fairy.integration.agent.memory.hook.ShortTermRedisSaveHook;
 import cn.nuaa.jensonxu.fairy.integration.agent.model.manager.AgentModelManager;
 import cn.nuaa.jensonxu.fairy.integration.agent.memory.AgentLoadedContext;
-
 import cn.nuaa.jensonxu.fairy.integration.agent.memory.AgentLongTermMemory;
+import cn.nuaa.jensonxu.fairy.integration.agent.skill.MixedSkillRegistry;
+import cn.nuaa.jensonxu.fairy.integration.agent.skill.NativeSkillRegistry;
+import cn.nuaa.jensonxu.fairy.integration.agent.skill.UserSkillRegistry;
+
 import com.alibaba.cloud.ai.graph.RunnableConfig;
 import com.alibaba.cloud.ai.graph.agent.ReactAgent;
 import com.alibaba.cloud.ai.graph.agent.hook.Hook;
+import com.alibaba.cloud.ai.graph.agent.hook.skills.SkillsAgentHook;
 import com.alibaba.cloud.ai.graph.agent.interceptor.Interceptor;
 import com.alibaba.cloud.ai.graph.checkpoint.Checkpoint;
 import com.alibaba.cloud.ai.graph.checkpoint.savers.MemorySaver;
 
+import io.minio.MinioClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -43,6 +51,11 @@ public class AgentClientBuilder {
     private final ShortTermRedisSaveHook shortTermRedisSaveHook;
     private final AgentLongTermMemory agentLongTermMemory;
 
+    // Skills 相关：NativeSkillRegistry 为单例 Bean，其余依赖用于 per-session 构建
+    private final NativeSkillRegistry nativeSkillRegistry;
+    private final AgentSkillRepository agentSkillRepository;
+    private final MinioClient minioClient;
+    private final MinioProperties minioProperties;
 
     /**
      * 根据请求上下文构建 ReactAgent
@@ -58,7 +71,15 @@ public class AgentClientBuilder {
         log.info("[agent] 构建 ReactAgent, modelName: {}, sessionId: {}", resolvedName, sessionId);
         prepopulateIfNeeded(sessionId, context.shortTermMessages());  // 若 MemorySaver 中尚无该会话的记录（进程重启），从 Redis/MySQL 回填历史消息
         LongTermMemoryInterceptor memInterceptor = new LongTermMemoryInterceptor(agentLongTermMemory, userId);
-        List<Hook> hooks = List.of(agentSummarizationHook, shortTermRedisSaveHook);
+
+        // 按 userId 构建会话级 MixedSkillRegistry，并组装 SkillsAgentHook
+        UserSkillRegistry userSkillRegistry = new UserSkillRegistry(userId, agentSkillRepository, minioClient, minioProperties);
+        MixedSkillRegistry mixedSkillRegistry = new MixedSkillRegistry(nativeSkillRegistry, userSkillRegistry);
+        SkillsAgentHook skillsAgentHook = SkillsAgentHook.builder()
+                .skillRegistry(mixedSkillRegistry)
+                .build();
+
+        List<Hook> hooks = List.of(skillsAgentHook, agentSummarizationHook, shortTermRedisSaveHook);
         List<Interceptor> interceptors = List.of(memInterceptor);
 
         /*
