@@ -3,7 +3,7 @@ package cn.nuaa.jensonxu.fairy.integration.agent.handler;
 import cn.nuaa.jensonxu.fairy.common.data.llm.AgentChatDTO;
 import cn.nuaa.jensonxu.fairy.common.data.llm.AgentEventDTO;
 import cn.nuaa.jensonxu.fairy.integration.agent.AgentProperties;
-import cn.nuaa.jensonxu.fairy.integration.agent.AgentSseEventType;
+import cn.nuaa.jensonxu.fairy.common.data.llm.AgentSseEventType;
 import cn.nuaa.jensonxu.fairy.integration.agent.memory.AgentMemoryManager;
 
 import com.alibaba.cloud.ai.graph.NodeOutput;
@@ -87,7 +87,6 @@ public class AgentHandler {
                     }
                 });
     }
-
 
     /**
      * 订阅 ReactAgent 流式输出，阻塞至流结束后写入记忆并发送结束事件

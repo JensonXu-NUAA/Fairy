@@ -1,4 +1,4 @@
-package cn.nuaa.jensonxu.fairy.integration.agent;
+package cn.nuaa.jensonxu.fairy.common.data.llm;
 
 /**
  * Agent SSE 事件类型常量
