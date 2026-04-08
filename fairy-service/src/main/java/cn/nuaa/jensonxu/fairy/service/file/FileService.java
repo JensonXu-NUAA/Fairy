@@ -47,6 +47,29 @@ public class FileService {
     }
 
     /**
+     * 上传输入流到 MinIO（用于上传内存中生成的文件）
+     *
+     * @param inputStream 文件输入流
+     * @param size        流的字节长度，未知时传 -1
+     * @param contentType 内容类型
+     * @param objectName  对象名称（文件在 MinIO 中的路径）
+     * @return objectName
+     */
+    public String uploadStream(InputStream inputStream, long size, String contentType, String objectName) throws Exception {
+        ensureBucketExists();
+        minioClient.putObject(
+                PutObjectArgs.builder()
+                        .bucket(minioProperties.getBucketName())
+                        .object(objectName)
+                        .stream(inputStream, size, -1)
+                        .contentType(contentType)
+                        .build()
+        );
+        log.info("[minio] 流上传成功, 对象路径: {}", objectName);
+        return objectName;
+    }
+
+    /**
      * 上传分片到 MinIO
      * @param chunkFile 分片文件
      * @param userId 用户id

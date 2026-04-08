@@ -44,7 +44,7 @@ public class AgentModelManager {
     private static final String GROUP_ID = "FAIRY_LLM_GROUP";
 
     /** Agent 侧独立维护的模型配置缓存 */
-    private final Map<String, ModelConfig> AgentModels = new ConcurrentHashMap<>();
+    private final Map<String, ModelConfig> agentModels = new ConcurrentHashMap<>();
     /** 摘要模型独立缓存，与 Agent 主模型隔离，避免 removeIf 互相影响 */
     private final Map<String, ModelConfig> summaryModels = new ConcurrentHashMap<>();
 
@@ -61,7 +61,7 @@ public class AgentModelManager {
             }
 
             loadModels(configInfo);
-            log.info("[agent] 模型配置初始化成功，共加载 {} 个模型", AgentModels.size());
+            log.info("[agent] 模型配置初始化成功，共加载 {} 个模型", agentModels.size());
 
             // 监听 Nacos 配置变更，动态更新
             configService.addListener(AGENT_DATA_ID, GROUP_ID, new Listener() {
@@ -76,14 +76,14 @@ public class AgentModelManager {
                     Set<String> updatedKeys = loadModels(updateInfo);
 
                     // 移除已下线的模型
-                    AgentModels.keySet().removeIf(key -> {
+                    agentModels.keySet().removeIf(key -> {
                         if (!updatedKeys.contains(key)) {
                             log.info("[agent] 模型配置已移除: {}", key);
                             return true;
                         }
                         return false;
                     });
-                    log.info("[agent] 模型配置更新完成，当前共 {} 个模型", AgentModels.size());
+                    log.info("[agent] 模型配置更新完成，当前共 {} 个模型", agentModels.size());
                 }
             });
 
@@ -137,35 +137,6 @@ public class AgentModelManager {
     }
 
     /**
-     * 解析配置 JSON 并写入缓存，返回本次解析的 key 集合
-     */
-    private Set<String> loadModels(String configJson) {
-        JSONObject jsonObject = JSON.parseObject(configJson);
-        for (String modelName : jsonObject.keySet()) {
-            ModelConfig modelConfig = jsonObject.getObject(modelName, ModelConfig.class);
-            modelConfig.setModelName(modelName);
-            AgentModels.put(modelName, modelConfig);
-            log.info("[agent] 加载模型配置: {}", modelName);
-        }
-        return jsonObject.keySet();
-    }
-
-    /**
-     * 解析摘要模型配置 JSON 并写入 summaryModels 缓存
-     */
-    private Set<String> loadSummaryModels(String configJson) {
-        JSONObject jsonObject = JSON.parseObject(configJson);
-        for (String modelName : jsonObject.keySet()) {
-            ModelConfig modelConfig = jsonObject.getObject(modelName, ModelConfig.class);
-            modelConfig.setModelName(modelName);
-            summaryModels.put(modelName, modelConfig);
-            log.info("[agent] 加载摘要模型配置: {}", modelName);
-        }
-        return jsonObject.keySet();
-    }
-
-
-    /**
      * 获取摘要模型的 ModelConfig，供 AgentMemorySummarizer（Phase 2）使用
      *
      * @param modelName 摘要模型名称，对应 AgentProperties.memory.longTerm.modelName
@@ -186,11 +157,56 @@ public class AgentModelManager {
      * @return 配置好模型和工具的 ReactAgent 实例
      */
     public ReactAgent createAgent(String modelName, ToolCallback[] toolCallbacks, BaseCheckpointSaver saver, List<Hook> hooks, List<Interceptor> interceptors) {
-        ModelConfig modelConfig = AgentModels.get(modelName);
+        ModelConfig modelConfig = agentModels.get(modelName);
         if (modelConfig == null) {
             throw new IllegalArgumentException("[agent] 未找到模型配置，modelName: " + modelName);
         }
         log.info("[agent] 创建 ReactAgent，modelName: {}", modelName);
         return factoryManager.createAgent(modelConfig, toolCallbacks, saver, hooks, interceptors);
+    }
+
+    /**
+     * 返回当前已加载且启用的模型列表
+     */
+    public List<ModelConfig> getAvailableModels() {
+        return agentModels.values().stream()
+                .filter(m -> Boolean.TRUE.equals(m.getEnabled()))
+                .map(m -> {
+                    ModelConfig config = new ModelConfig();
+                    config.setModelName(m.getModelName());
+                    config.setProvider(m.getProvider());
+                    config.setEnabled(m.getEnabled());
+                    config.setParameters(m.getParameters());
+                    return config;
+                })
+                .toList();
+    }
+
+    /**
+     * 解析配置 JSON 并写入缓存，返回本次解析的 key 集合
+     */
+    private Set<String> loadModels(String configJson) {
+        JSONObject jsonObject = JSON.parseObject(configJson);
+        for (String modelName : jsonObject.keySet()) {
+            ModelConfig modelConfig = jsonObject.getObject(modelName, ModelConfig.class);
+            modelConfig.setModelName(modelName);
+            agentModels.put(modelName, modelConfig);
+            log.info("[agent] 加载模型配置: {}", modelName);
+        }
+        return jsonObject.keySet();
+    }
+
+    /**
+     * 解析摘要模型配置 JSON 并写入 summaryModels 缓存
+     */
+    private Set<String> loadSummaryModels(String configJson) {
+        JSONObject jsonObject = JSON.parseObject(configJson);
+        for (String modelName : jsonObject.keySet()) {
+            ModelConfig modelConfig = jsonObject.getObject(modelName, ModelConfig.class);
+            modelConfig.setModelName(modelName);
+            summaryModels.put(modelName, modelConfig);
+            log.info("[agent] 加载摘要模型配置: {}", modelName);
+        }
+        return jsonObject.keySet();
     }
 }
