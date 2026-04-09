@@ -1,7 +1,7 @@
 package cn.nuaa.jensonxu.fairy.service.agent;
 
-import cn.nuaa.jensonxu.fairy.common.data.agent.AgentSessionMessageVO;
-import cn.nuaa.jensonxu.fairy.common.data.agent.AgentSessionVO;
+import cn.nuaa.jensonxu.fairy.common.data.llm.AgentSessionMessageVO;
+import cn.nuaa.jensonxu.fairy.common.data.llm.AgentSessionVO;
 import cn.nuaa.jensonxu.fairy.common.repository.mysql.AgentSessionMessageRepository;
 import cn.nuaa.jensonxu.fairy.common.repository.mysql.AgentSessionMetadataRepository;
 import cn.nuaa.jensonxu.fairy.common.repository.mysql.data.AgentSessionMessageDO;
