@@ -1,4 +1,4 @@
-package cn.nuaa.jensonxu.fairy.common.data.llm;
+package cn.nuaa.jensonxu.fairy.common.data.llm.agent.request;
 
 import lombok.Data;
 import org.apache.commons.lang3.StringUtils;

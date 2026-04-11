@@ -53,7 +53,6 @@ public class LongTermMemoryInterceptor extends ModelInterceptor {
                 .build();
 
         log.debug("[long-term-interceptor] 注入长期记忆前缀, userId: {}, 前缀长度: {} 字符", userId, cachedPrefix.length());
-
         return handler.call(enriched);
     }
 

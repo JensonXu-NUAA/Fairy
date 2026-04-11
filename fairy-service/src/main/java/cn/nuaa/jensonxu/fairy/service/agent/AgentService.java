@@ -1,6 +1,6 @@
 package cn.nuaa.jensonxu.fairy.service.agent;
 
-import cn.nuaa.jensonxu.fairy.common.data.llm.AgentChatDTO;
+import cn.nuaa.jensonxu.fairy.common.data.llm.agent.request.AgentChatDTO;
 import cn.nuaa.jensonxu.fairy.common.repository.mysql.AgentSessionMetadataRepository;
 import cn.nuaa.jensonxu.fairy.common.repository.mysql.data.AgentSessionMetadataDO;
 import cn.nuaa.jensonxu.fairy.integration.agent.AgentClientBuilder;

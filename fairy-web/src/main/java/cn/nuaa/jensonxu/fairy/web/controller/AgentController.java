@@ -1,12 +1,12 @@
 package cn.nuaa.jensonxu.fairy.web.controller;
 
-import cn.nuaa.jensonxu.fairy.common.data.llm.AgentSessionVO;
-import cn.nuaa.jensonxu.fairy.common.data.llm.AgentSessionMessageVO;
+import cn.nuaa.jensonxu.fairy.common.data.llm.agent.response.AgentSessionVO;
+import cn.nuaa.jensonxu.fairy.common.data.llm.agent.response.AgentSessionMessageVO;
 import cn.nuaa.jensonxu.fairy.common.data.llm.ModelVO;
 import cn.nuaa.jensonxu.fairy.common.data.file.response.CustomResponse;
 import cn.nuaa.jensonxu.fairy.integration.agent.model.manager.AgentModelManager;
 import cn.nuaa.jensonxu.fairy.service.agent.AgentSessionQueryService;
-import cn.nuaa.jensonxu.fairy.common.data.llm.AgentChatDTO;
+import cn.nuaa.jensonxu.fairy.common.data.llm.agent.request.AgentChatDTO;
 import cn.nuaa.jensonxu.fairy.service.agent.AgentService;
 
 import org.apache.commons.lang3.StringUtils;

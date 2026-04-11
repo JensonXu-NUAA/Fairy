@@ -1,9 +1,9 @@
 package cn.nuaa.jensonxu.fairy.integration.agent.handler;
 
-import cn.nuaa.jensonxu.fairy.common.data.llm.AgentChatDTO;
-import cn.nuaa.jensonxu.fairy.common.data.llm.AgentEventDTO;
+import cn.nuaa.jensonxu.fairy.common.data.llm.agent.request.AgentChatDTO;
+import cn.nuaa.jensonxu.fairy.common.data.llm.agent.request.AgentEventDTO;
 import cn.nuaa.jensonxu.fairy.integration.agent.AgentProperties;
-import cn.nuaa.jensonxu.fairy.common.data.llm.AgentSseEventType;
+import cn.nuaa.jensonxu.fairy.common.data.llm.agent.AgentSseEventType;
 import cn.nuaa.jensonxu.fairy.integration.agent.memory.AgentMemoryManager;
 
 import com.alibaba.cloud.ai.graph.NodeOutput;

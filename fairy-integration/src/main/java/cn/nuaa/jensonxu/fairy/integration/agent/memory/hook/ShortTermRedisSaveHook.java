@@ -49,7 +49,7 @@ public class ShortTermRedisSaveHook extends AgentHook {
         String userId = config.metadata(USER_ID_KEY).map(Object::toString).orElse(null);
 
         if (sessionId == null || userId == null) {
-            log.warn("[short-term-save-hook] 缺少 sessionId 或 userId，跳过记忆写入");
+            log.warn("[agent-short-term-memory] 缺少 sessionId 或 userId，跳过记忆写入");
             return CompletableFuture.completedFuture(Map.of());
         }
 
@@ -73,17 +73,16 @@ public class ShortTermRedisSaveHook extends AgentHook {
         }
 
         if (lastHuman == null || lastAssistant == null) {
-            log.debug("[short-term-save-hook] 未找到完整消息对，跳过写入, sessionId: {}", sessionId);
+            log.debug("[agent-short-term-memory] 未找到完整消息对，跳过写入, sessionId: {}", sessionId);
             return CompletableFuture.completedFuture(Map.of());
         }
-        log.info("[short-term-save-hook] 本轮消息提取完成, sessionId: {}, human 长度: {}, assistant 长度: {}", sessionId, lastHuman.getText().length(), lastAssistant.getText().length());
+        log.info("[agent-short-term-memory] 本轮消息提取完成, sessionId: {}, human 长度: {}, assistant 长度: {}", sessionId, lastHuman.getText().length(), lastAssistant.getText().length());
 
         try {
-            throw new RuntimeException("[TEST] 强制模拟 MySQL 写入失败");  // 测试完成后删除
-            // shortTermMemory.saveMessages(sessionId, userId, List.of(lastHuman, lastAssistant));
-            // log.info("[short-term-save-hook] 本轮消息已持久化, sessionId: {}", sessionId);
+            shortTermMemory.saveMessages(sessionId, userId, List.of(lastHuman, lastAssistant));
+            log.info("[agent-short-term-memory] 本轮消息已持久化, sessionId: {}", sessionId);
         } catch (Exception e) {
-            log.error("[short-term-save-hook] MySQL 写入失败，降级投递 RocketMQ, sessionId: {}", sessionId, e);
+            log.error("[agent-short-term-memory] MySQL 写入失败，降级投递 RocketMQ, sessionId: {}", sessionId, e);
             fallbackToMq(sessionId, userId, lastHuman.getText(), lastAssistant.getText());
         }
 
@@ -108,6 +107,6 @@ public class ShortTermRedisSaveHook extends AgentHook {
                 .originTimestamp(System.currentTimeMillis())
                 .build();
         memoryMessageProducer.sendPersistMessage(message);
-        log.info("[short-term-save-hook] 记忆持久化消息已投递 RocketMQ, sessionId: {}", sessionId);
+        log.info("[agent-short-term-memory] 记忆持久化消息已投递 RocketMQ, sessionId: {}", sessionId);
     }
 }

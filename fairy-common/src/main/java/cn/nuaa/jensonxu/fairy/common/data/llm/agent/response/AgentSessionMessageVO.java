@@ -1,4 +1,4 @@
-package cn.nuaa.jensonxu.fairy.common.data.llm;
+package cn.nuaa.jensonxu.fairy.common.data.llm.agent.response;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

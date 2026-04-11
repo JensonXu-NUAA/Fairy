@@ -54,10 +54,10 @@ public class AgentSummarizationHook extends MessagesModelHook {
         String userId = config.metadata(USER_ID_KEY).map(Object::toString).orElse(null);
 
         if (sessionId == null || userId == null) {
-            log.warn("[summarization-hook] 缺少 sessionId 或 userId，跳过压缩, messages: {}", messages.size());
+            log.warn("[summarization] 缺少 sessionId 或 userId，跳过压缩, messages: {}", messages.size());
             return new AgentCommand(messages);
         }
-        log.info("[summarization-hook] 消息数 {} 达到阈值 {}，开始压缩, sessionId: {}", messages.size(), maxMessages, sessionId);
+        log.info("[summarization] 消息数 {} 达到阈值 {}，开始压缩, sessionId: {}", messages.size(), maxMessages, sessionId);
 
         // 保留最近一半消息，对前面的消息进行摘要
         int keepCount = maxMessages / 2;
@@ -69,11 +69,11 @@ public class AgentSummarizationHook extends MessagesModelHook {
         for (SummaryItem item : items) {
             longTermMemory.saveMemory(userId, item.key(), item.content(), item.importance(), sessionId);
         }
-        log.info("[summarization-hook] 长期记忆写入 {} 条, sessionId: {}", items.size(), sessionId);
+        log.info("[summarization] 长期记忆写入 {} 条, sessionId: {}", items.size(), sessionId);
 
         // 2. 同步替换 Redis 消息列表
         shortTermMemory.replaceMessages(sessionId, toKeep);
-        log.info("[summarization-hook] Redis 已替换为压缩后 {} 条消息, sessionId: {}", toKeep.size(), sessionId);
+        log.info("[summarization] Redis 已替换为压缩后 {} 条消息, sessionId: {}", toKeep.size(), sessionId);
 
         // 3. 更新 MemorySaver（与 Redis 保持一致）
         return new AgentCommand(toKeep, UpdatePolicy.REPLACE);
