@@ -40,7 +40,7 @@ public class AgentService {
      */
     public SseEmitter chat(AgentChatDTO agentChatDTO) {
 
-        String agentSessionId = agentChatDTO.getAgentSessionId();  // 确保 agentSessionId 已生成
+        String agentSessionId = agentChatDTO.getSessionId();  // 确保 agentSessionId 已生成
         int maxIterations = resolveMaxIterations(agentChatDTO.getMaxIterations());  // 解析最终使用的 maxIterations
         log.info("[agent] 开始 Agent 对话 - userId: {}, agentSessionId: {}, model: {}, maxIterations: {}", agentChatDTO.getUserId(), agentSessionId, agentChatDTO.getModelName(), maxIterations);
         handleSessionMetadata(agentChatDTO, agentSessionId);  // 维护会话元数据，创建标题

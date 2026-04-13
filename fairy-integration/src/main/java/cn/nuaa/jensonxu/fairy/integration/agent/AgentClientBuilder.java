@@ -2,7 +2,6 @@ package cn.nuaa.jensonxu.fairy.integration.agent;
 
 import cn.nuaa.jensonxu.fairy.integration.service.tools.service.SkillToolService;
 
-import cn.nuaa.jensonxu.fairy.integration.agent.memory.hook.AgentSummarizationHook;
 import cn.nuaa.jensonxu.fairy.integration.agent.memory.hook.LongTermMemoryInterceptor;
 import cn.nuaa.jensonxu.fairy.integration.agent.memory.hook.ShortTermRedisSaveHook;
 import cn.nuaa.jensonxu.fairy.integration.agent.model.manager.AgentModelManager;
@@ -43,7 +42,6 @@ public class AgentClientBuilder {
     private final ToolCallbackProvider toolCallbackProvider;
     private final AgentProperties agentProperties;
     private final MemorySaver memorySaver;
-    private final AgentSummarizationHook agentSummarizationHook;
     private final ShortTermRedisSaveHook shortTermRedisSaveHook;
     private final AgentLongTermMemory agentLongTermMemory;
     private final NativeSkillRegistry nativeSkillRegistry;  // skill 注册
@@ -69,7 +67,7 @@ public class AgentClientBuilder {
                 .groupedTools(buildGroupedTools())
                 .build();
 
-        List<Hook> hooks = List.of(skillsAgentHook, agentSummarizationHook, shortTermRedisSaveHook);
+        List<Hook> hooks = List.of(skillsAgentHook, shortTermRedisSaveHook);
         List<Interceptor> interceptors = List.of(memInterceptor);
         return agentModelManager.createAgent(resolvedName, toolCallbackProvider.getToolCallbacks(), memorySaver, hooks, interceptors);
     }

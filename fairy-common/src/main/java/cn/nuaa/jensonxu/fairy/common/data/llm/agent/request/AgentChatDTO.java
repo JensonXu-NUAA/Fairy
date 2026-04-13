@@ -19,7 +19,7 @@ public class AgentChatDTO {
      * 为空时由 getter 自动生成，格式：agent_{userId前缀}_{UUID前8位}
      * 客户端首次请求时不传，后续多轮对话传入相同 ID 以维持上下文
      */
-    private String agentSessionId;
+    private String sessionId;
 
     /**
      * 指定本次使用的模型名称
@@ -33,13 +33,13 @@ public class AgentChatDTO {
      */
     private Integer maxIterations;
 
-    public String getAgentSessionId() {
-        if (StringUtils.isBlank(agentSessionId)) {
+    public String getSessionId() {
+        if (StringUtils.isBlank(sessionId)) {
             String prefix = StringUtils.isNotBlank(userId)
                     ? userId.substring(0, Math.min(userId.length(), 6))
                     : "anon";
-            this.agentSessionId = "agent_" + prefix + "_" + UUID.randomUUID().toString().substring(0, 8);
+            this.sessionId = "agent_" + prefix + "_" + UUID.randomUUID().toString().substring(0, 8);
         }
-        return agentSessionId;
+        return sessionId;
     }
 }

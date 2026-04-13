@@ -66,8 +66,7 @@ public class AgentLongTermMemory {
      * @param importance      重要度 1-10
      * @param sourceSessionId 来源会话 ID
      */
-    public void saveMemory(String userId, String memoryKey, String content,
-                           int importance, String sourceSessionId) {
+    public void saveMemory(String userId, String memoryKey, String content, int importance, String sourceSessionId) {
         LocalDateTime now = LocalDateTime.now();
         AgentMemoryDO record = AgentMemoryDO.builder()
                 .userId(userId)

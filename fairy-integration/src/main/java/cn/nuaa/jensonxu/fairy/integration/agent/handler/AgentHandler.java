@@ -76,7 +76,7 @@ public class AgentHandler {
                         sendStart();
                         executeAgentStream();
                     } catch (AgentConcurrencyException e) {
-                        log.warn("[agent] 并发限流触发 - agentSessionId: {}, 等待队列长度: {}", agentChatDTO.getAgentSessionId(), concurrencyLimiter.getQueueLength());
+                        log.warn("[agent] 并发限流触发 - agentSessionId: {}, 等待队列长度: {}", agentChatDTO.getSessionId(), concurrencyLimiter.getQueueLength());
                         handleConcurrencyRejected(e);  // 等待超时，向客户端推送限流事件
                     } catch (Exception e) {
                         handleError(e);
@@ -95,7 +95,7 @@ public class AgentHandler {
         try {
             // 传入 threadId，激活 MemorySaver 的跨轮会话隔离
             RunnableConfig runnableConfig = RunnableConfig.builder()
-                    .threadId(agentChatDTO.getAgentSessionId())
+                    .threadId(agentChatDTO.getSessionId())
                     .addMetadata("user_id", agentChatDTO.getUserId())
                     .build();
 
@@ -105,14 +105,14 @@ public class AgentHandler {
                             handleNodeOutput(output);
                         } catch (Exception e) {
                             log.error("[agent] 处理节点输出异常 - agentSessionId: {}",
-                                    agentChatDTO.getAgentSessionId(), e);
+                                    agentChatDTO.getSessionId(), e);
                         }
                     })
                     .blockLast();
 
             // 流正常结束，持久化本轮对话消息
             // saveRoundMessages();
-            log.info("[agent] 本轮完整回复 - agentSessionId: {}\n{}", agentChatDTO.getAgentSessionId(), assistantTextBuffer.toString());
+            log.info("[agent] 本轮完整回复 - agentSessionId: {}\n{}", agentChatDTO.getSessionId(), assistantTextBuffer.toString());
             sendEnd();
 
         } catch (Exception e) {
@@ -138,7 +138,7 @@ public class AgentHandler {
                     Object reasoningContent = assistantMessage.getMetadata().get("reasoningContent");
                     if (reasoningContent != null && StringUtils.isNotBlank(reasoningContent.toString())) {
                         if (agentProperties.isStreamThinking()) {
-                            AgentEventDTO event = AgentEventDTO.ofContent(AgentSseEventType.AGENT_THINKING, reasoningContent.toString(), agentChatDTO.getAgentSessionId());
+                            AgentEventDTO event = AgentEventDTO.ofContent(AgentSseEventType.AGENT_THINKING, reasoningContent.toString(), agentChatDTO.getSessionId());
                             sendSseEvent(AgentSseEventType.AGENT_THINKING, JSON.toJSONString(event));
                         }
                     } else {
@@ -146,7 +146,7 @@ public class AgentHandler {
                         if (StringUtils.isNotBlank(text)) {
                             // 累积 Assistant 回复，推理结束后一并写入记忆
                             assistantTextBuffer.append(text);
-                            AgentEventDTO event = AgentEventDTO.ofContent(AgentSseEventType.AGENT_ANSWER, text, agentChatDTO.getAgentSessionId());
+                            AgentEventDTO event = AgentEventDTO.ofContent(AgentSseEventType.AGENT_ANSWER, text, agentChatDTO.getSessionId());
                             sendSseEvent(AgentSseEventType.AGENT_ANSWER, JSON.toJSONString(event));
                         }
                     }
@@ -158,10 +158,10 @@ public class AgentHandler {
                     for (AssistantMessage.ToolCall toolCall : assistantMessage.getToolCalls()) {
                         if ("read_skill".equals(toolCall.name())) {
                             String skillName = extractSkillName(toolCall.arguments());
-                            AgentEventDTO event = AgentEventDTO.ofSkillLoad(skillName, agentChatDTO.getAgentSessionId(), chunkId);
+                            AgentEventDTO event = AgentEventDTO.ofSkillLoad(skillName, agentChatDTO.getSessionId(), chunkId);
                             sendSseEvent(AgentSseEventType.AGENT_SKILL_LOAD, JSON.toJSONString(event));
                         } else {
-                            AgentEventDTO event = AgentEventDTO.ofToolCall(toolCall.name(), toolCall.arguments(), agentChatDTO.getAgentSessionId(), chunkId);
+                            AgentEventDTO event = AgentEventDTO.ofToolCall(toolCall.name(), toolCall.arguments(), agentChatDTO.getSessionId(), chunkId);
                             sendSseEvent(AgentSseEventType.AGENT_TOOL_CALL, JSON.toJSONString(event));
                         }
                     }
@@ -174,7 +174,7 @@ public class AgentHandler {
                         if ("read_skill".equals(response.name())) {
                             continue;  // skill 内容不下发前端
                         }
-                        AgentEventDTO event = AgentEventDTO.ofToolResult(response.name(), response.responseData(), agentChatDTO.getAgentSessionId(), chunkId);
+                        AgentEventDTO event = AgentEventDTO.ofToolResult(response.name(), response.responseData(), agentChatDTO.getSessionId(), chunkId);
                         sendSseEvent(AgentSseEventType.AGENT_TOOL_RESULT, JSON.toJSONString(event));
                     }
                 }
@@ -184,45 +184,20 @@ public class AgentHandler {
         }
     }
 
-    /**
-     * 推理结束后将本轮 HumanMessage + AssistantMessage 写入短期记忆
-     */
-    private void saveRoundMessages() {
-        String assistantText = assistantTextBuffer.toString();
-        if (StringUtils.isBlank(assistantText)) {
-            log.debug("[agent] 本轮 Assistant 回复为空，跳过记忆写入");
-            return;
-        }
-
-        log.info("[agent] 本轮完整回复 - agentSessionId: {}\n{}", agentChatDTO.getAgentSessionId(), assistantText);
-        try {
-            agentMemoryManager.saveRoundMessages(
-                    agentChatDTO.getAgentSessionId(),
-                    agentChatDTO.getUserId(),
-                    new UserMessage(agentChatDTO.getMessage()),
-                    new AssistantMessage(assistantText)
-            );
-        } catch (Exception e) {
-            log.warn("[agent] 短期记忆写入失败, sessionId: {}", agentChatDTO.getAgentSessionId(), e);
-        }
-    }
-
     private void sendStart() throws Exception {
-        AgentEventDTO event = AgentEventDTO.ofContent(AgentSseEventType.AGENT_START, agentChatDTO.getModelName(), agentChatDTO.getAgentSessionId());
+        AgentEventDTO event = AgentEventDTO.ofContent(AgentSseEventType.AGENT_START, agentChatDTO.getModelName(), agentChatDTO.getSessionId());
         sendSseEvent(AgentSseEventType.AGENT_START, JSON.toJSONString(event));
     }
 
     private void sendEnd() {
         try {
-            AgentEventDTO event = AgentEventDTO.ofContent(AgentSseEventType.AGENT_END, null, agentChatDTO.getAgentSessionId());
+            AgentEventDTO event = AgentEventDTO.ofContent(AgentSseEventType.AGENT_END, null, agentChatDTO.getSessionId());
             sendSseEvent(AgentSseEventType.AGENT_END, JSON.toJSONString(event));
             sendSseEvent(AgentSseEventType.DONE, AgentSseEventType.DONE);
             sseEmitter.complete();
-
-            // 会话结束回调，Phase 2 摘要提炼在此处触发
-            agentMemoryManager.onSessionEnd(agentChatDTO.getAgentSessionId(), agentChatDTO.getUserId());
+            // agentMemoryManager.onSessionEnd(agentChatDTO.getSessionId(), agentChatDTO.getUserId());  // 会话结束回调，摘要提炼在此处触发
         } catch (Exception e) {
-            log.error("[agent] 发送结束事件异常 - agentSessionId: {}", agentChatDTO.getAgentSessionId(), e);
+            log.error("[agent] 发送结束事件异常 - agentSessionId: {}", agentChatDTO.getSessionId(), e);
             sseEmitter.completeWithError(e);
         }
     }
@@ -233,7 +208,7 @@ public class AgentHandler {
      */
     private void handleConcurrencyRejected(AgentConcurrencyException e) {
         try {
-            AgentEventDTO event = AgentEventDTO.ofContent(AgentSseEventType.AGENT_ERROR, "429:" + e.getMessage(), agentChatDTO.getAgentSessionId());
+            AgentEventDTO event = AgentEventDTO.ofContent(AgentSseEventType.AGENT_ERROR, "429:" + e.getMessage(), agentChatDTO.getSessionId());
             sendSseEvent(AgentSseEventType.AGENT_ERROR, JSON.toJSONString(event));
         } catch (Exception ex) {
             log.error("[agent] 发送限流事件异常", ex);
@@ -244,10 +219,9 @@ public class AgentHandler {
 
 
     private void handleError(Throwable e) {
-        log.error("[agent] 执行异常 - agentSessionId: {}", agentChatDTO.getAgentSessionId(), e);
+        log.error("[agent] 执行异常 - agentSessionId: {}", agentChatDTO.getSessionId(), e);
         try {
-            AgentEventDTO event = AgentEventDTO.ofContent(AgentSseEventType.AGENT_ERROR,
-                    e.getMessage(), agentChatDTO.getAgentSessionId());
+            AgentEventDTO event = AgentEventDTO.ofContent(AgentSseEventType.AGENT_ERROR, e.getMessage(), agentChatDTO.getSessionId());
             sendSseEvent(AgentSseEventType.AGENT_ERROR, JSON.toJSONString(event));
         } catch (Exception ex) {
             log.error("[agent] 发送错误事件异常", ex);
