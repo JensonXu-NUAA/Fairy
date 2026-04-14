@@ -37,18 +37,25 @@ public class AgentMemorySummarizer {
     private final AgentProperties agentProperties;
 
     private static final String SYSTEM_PROMPT = """
-            你是一个对话记忆提炼助手。请从以下用户与 AI 的对话记录中，\
-            提取值得长期记忆的关键事实和用户偏好信息。
-            
-            规则：
-            1. 只提取客观事实（如姓名、职业、地点、项目信息）和明确偏好（如编程语言偏好、表达习惯）
-            2. 忽略闲聊、问候语、通用知识问答等无实质记忆价值的内容
-            3. 每条记忆内容简洁，不超过 50 字，表述客观、不带主观判断
-            4. importance 字段取值 1-10，根据信息对未来对话的参考价值判断
-            5. 严格输出 JSON 数组格式，不包含任何额外文字：
-               [{"key":"标签","content":"内容","importance":数字}, ...]
-            6. 若对话中无任何值得记忆的内容，输出空数组：[]
-            """;
+        你是一个对话记忆提炼助手。请从以下用户与 AI 的对话记录中，提取值得长期记忆的关键信息。
+        
+        【分类说明】
+        - fact（客观事实）：用户的客观背景信息，如姓名、职业、所在城市、使用语言等
+        - preference（用户偏好）：用户明确表达或行为中体现的偏好倾向，涵盖以下维度：
+          · 交互偏好：回复长度（简洁/详细）、语气（正式/随意）、是否喜欢举例、是否喜欢分点列出
+          · 兴趣领域：旅行、运动、阅读、音乐、美食、摄影等感兴趣的方向
+          · 生活偏好：出行方式、饮食口味、景点类型、消费习惯等
+          · 表达习惯：是否使用 Markdown、是否喜欢表格、语言风格等
+        
+        【提取规则】
+        1. 只提取有明确依据的信息，不猜测、不推断
+        2. 忽略闲聊、问候语、通用知识问答等无实质记忆价值的内容
+        3. 每条记忆内容简洁，不超过 50 字，表述客观、不带主观判断
+        4. importance 取值 1-10，根据信息对未来对话的参考价值判断
+        5. 严格输出 JSON 数组，不包含任何额外文字：
+           [{"key":"标签","category":"fact或preference","content":"内容","importance":数字}, ...]
+        6. 若对话中无任何值得记忆的内容，输出空数组：[]
+        """;
 
     /**
      * 对消息列表进行摘要提炼，返回结构化记忆条目列表
@@ -126,9 +133,14 @@ public class AgentMemorySummarizer {
                 JSONObject obj = array.getJSONObject(i);
                 String key = obj.getString("key");
                 String content = obj.getString("content");
+                String category = obj.getString("category");
                 int importance = obj.getIntValue("importance", 5);
+
+                if (StringUtils.isBlank(category)) {
+                    category = "fact";
+                }
                 if (StringUtils.isNotBlank(key) && StringUtils.isNotBlank(content)) {
-                    items.add(new SummaryItem(key, content, importance));
+                    items.add(new SummaryItem(key, category, content, importance));
                 }
             }
             return items;
@@ -141,5 +153,5 @@ public class AgentMemorySummarizer {
     /**
      * 摘要提炼结果的值对象
      */
-    public record SummaryItem(String key, String content, int importance) {}
+    public record SummaryItem(String key, String category, String content, int importance) {}
 }

@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 /**
- * Agent 用户长期记忆实体
+ * Agent 用户长期记忆
  * 对应表：agent_user_memory
  */
 @Data
@@ -32,6 +32,10 @@ public class AgentMemoryDO {
     /** 记忆标签，如 user_language_preference */
     @TableField("memory_key")
     private String memoryKey;
+
+    /** 记忆分类：preference=用户偏好，fact=客观事实 */
+    @TableField("category")
+    private String category;
 
     /** 记忆内容 */
     @TableField("content")

@@ -40,19 +40,35 @@ public class AgentLongTermMemory {
 
         int maxFacts = agentProperties.getMemory().getLongTerm().getMaxFactsPerUser();
         List<AgentMemoryDO> memories = agentMemoryRepository.findByUserId(userId, maxFacts);
-
         if (memories.isEmpty()) {
             return "";
         }
 
-        StringBuilder sb = new StringBuilder();
-        sb.append("[关于用户的长期记忆]\n");
-        for (AgentMemoryDO memory : memories) {
-            sb.append("- ").append(memory.getContent()).append("\n");
-        }
-        sb.append("\n");
+        List<AgentMemoryDO> preferences = memories.stream()
+                .filter(m -> "preference".equals(m.getCategory()))
+                .toList();
+        List<AgentMemoryDO> facts = memories.stream()
+                .filter(m -> !"preference".equals(m.getCategory()))
+                .toList();
 
-        log.debug("[agent] 注入长期记忆 {} 条, userId: {}", memories.size(), userId);
+        StringBuilder sb = new StringBuilder();
+        if (!preferences.isEmpty()) {
+            sb.append("[用户偏好]\n");
+            for (AgentMemoryDO agentMemoryDO : preferences) {
+                sb.append("- ").append(agentMemoryDO.getContent()).append("\n");
+            }
+            sb.append("\n");
+        }
+
+        if (!facts.isEmpty()) {
+            sb.append("[用户背景]\n");
+            for (AgentMemoryDO agentMemoryDO : facts) {
+                sb.append("- ").append(agentMemoryDO.getContent()).append("\n");
+            }
+            sb.append("\n");
+        }
+
+        log.debug("[agent] 注入长期记忆 {} 条（偏好 {}，背景 {}）, userId: {}, content: {}", memories.size(), preferences.size(), facts.size(), userId, sb);
         return sb.toString();
     }
 
@@ -66,12 +82,13 @@ public class AgentLongTermMemory {
      * @param importance      重要度 1-10
      * @param sourceSessionId 来源会话 ID
      */
-    public void saveMemory(String userId, String memoryKey, String content, int importance, String sourceSessionId) {
+    public void saveMemory(String userId, String memoryKey, String category, String content, int importance, String sourceSessionId) {
         LocalDateTime now = LocalDateTime.now();
         AgentMemoryDO record = AgentMemoryDO.builder()
                 .userId(userId)
                 .memoryKey(memoryKey)
                 .content(content)
+                .category(category)
                 .source("auto")
                 .importance(importance)
                 .sourceSessionId(sourceSessionId)

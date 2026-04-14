@@ -33,6 +33,7 @@ public class AgentMemoryRepository {
                     new LambdaUpdateWrapper<AgentMemoryDO>()
                             .eq(AgentMemoryDO::getId, existing.getId())
                             .set(AgentMemoryDO::getContent, record.getContent())
+                            .set(AgentMemoryDO::getCategory, record.getCategory())
                             .set(AgentMemoryDO::getSource, record.getSource())
                             .set(AgentMemoryDO::getImportance, record.getImportance())
                             .set(AgentMemoryDO::getSourceSessionId, record.getSourceSessionId())

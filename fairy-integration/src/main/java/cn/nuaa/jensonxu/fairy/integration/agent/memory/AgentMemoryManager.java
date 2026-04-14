@@ -52,11 +52,10 @@ public class AgentMemoryManager {
         int summarizeCount = agentProperties.getMemory().getShortTerm().getMaxMessages() / 2;
         List<Message> toSummarize = messages.subList(0, summarizeCount);
         List<Message> toKeep = new ArrayList<>(messages.subList(summarizeCount, messages.size()));
-
         List<SummaryItem> items = summarizer.summarize(toSummarize, userId, sessionId);
         if (!items.isEmpty()) {
             for (SummaryItem item : items) {
-                longTermMemory.saveMemory(userId, item.key(), item.content(), item.importance(), sessionId);
+                longTermMemory.saveMemory(userId, item.key(), item.category(), item.content(), item.importance(), sessionId);
             }
             log.info("[memory] 加载阶段压缩：长期记忆写入 {} 条, sessionId: {}", items.size(), sessionId);
         } else {

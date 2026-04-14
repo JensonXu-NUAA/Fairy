@@ -13,6 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.Message;
+import org.springframework.ai.chat.messages.MessageType;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.stereotype.Component;
 
@@ -52,7 +53,6 @@ public class AgentShortTermMemory {
             List<String> serialized = messages.stream().map(this::serialize).toList();
             redisUtil.listRightPushAll(key, serialized.toArray(new Object[0]));
             redisUtil.expire(key, ttlHours, TimeUnit.HOURS);
-            // 移除：redisUtil.listTrim(...)
         } catch (Exception e) {
             log.warn("[agent] Redis 写入失败，下次请求将从 MySQL 恢复, sessionId: {}", sessionId, e);
         }
@@ -154,10 +154,11 @@ public class AgentShortTermMemory {
     }
 
     private String resolveRole(Message message) {
-        return switch (message.getMessageType()) {
-            case ASSISTANT -> "assistant";
-            default -> "user";
-        };
+        if(message.getMessageType().equals(MessageType.ASSISTANT)) {
+            return "assistant";
+        } else {
+            return "user";
+        }
     }
 
     private String buildKey(String sessionId) {
