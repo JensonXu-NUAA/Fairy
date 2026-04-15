@@ -1,7 +1,7 @@
 package cn.nuaa.jensonxu.fairy.integration.agent.memory.hook;
 
 import cn.nuaa.jensonxu.fairy.common.rocketmq.message.AgentMemoryPersistMessage;
-import cn.nuaa.jensonxu.fairy.integration.agent.memory.AgentMemoryMessageProducer;
+import cn.nuaa.jensonxu.fairy.integration.agent.memory.mq.AgentMemoryMessageProducer;
 import cn.nuaa.jensonxu.fairy.integration.agent.memory.AgentShortTermMemory;
 
 import com.alibaba.cloud.ai.graph.OverAllState;

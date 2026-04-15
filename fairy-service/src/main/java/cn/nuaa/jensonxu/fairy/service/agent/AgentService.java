@@ -48,7 +48,7 @@ public class AgentService {
         ReactAgent reactAgent = agentClientBuilder.build(agentChatDTO.getModelName(), agentSessionId, agentChatDTO.getUserId(), context);  // ② 构建 ReactAgent：注入 MemorySaver、回填历史、设置 System Prompt
         SseEmitter sseEmitter = new SseEmitter(0L);  // ③ 创建 SSE 连接（0L 表示不超时，由 Agent 执行完毕后主动关闭）
         setSseCallbacks(sseEmitter, agentSessionId);
-        AgentHandler agentHandler = new AgentHandler(reactAgent, sseEmitter, agentChatDTO, agentProperties, agentMemoryManager, concurrencyLimiter);  // ④ 实例化 AgentHandler，异步执行 Agent 推理循环
+        AgentHandler agentHandler = new AgentHandler(reactAgent, sseEmitter, agentChatDTO, agentProperties, concurrencyLimiter);  // ④ 实例化 AgentHandler，异步执行 Agent 推理循环
         agentHandler.runV2();
 
         return sseEmitter;

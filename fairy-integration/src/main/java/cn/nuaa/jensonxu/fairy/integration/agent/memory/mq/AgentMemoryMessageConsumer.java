@@ -1,4 +1,4 @@
-package cn.nuaa.jensonxu.fairy.integration.agent.memory;
+package cn.nuaa.jensonxu.fairy.integration.agent.memory.mq;
 
 import cn.nuaa.jensonxu.fairy.common.repository.mysql.AgentSessionMessageRepository;
 import cn.nuaa.jensonxu.fairy.common.repository.mysql.data.AgentSessionMessageDO;

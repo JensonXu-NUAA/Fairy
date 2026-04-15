@@ -4,7 +4,6 @@ import cn.nuaa.jensonxu.fairy.common.data.llm.agent.request.AgentChatDTO;
 import cn.nuaa.jensonxu.fairy.common.data.llm.agent.request.AgentEventDTO;
 import cn.nuaa.jensonxu.fairy.integration.agent.AgentProperties;
 import cn.nuaa.jensonxu.fairy.common.data.llm.agent.AgentSseEventType;
-import cn.nuaa.jensonxu.fairy.integration.agent.memory.AgentMemoryManager;
 
 import com.alibaba.cloud.ai.graph.NodeOutput;
 import com.alibaba.cloud.ai.graph.RunnableConfig;
@@ -38,7 +37,6 @@ public class AgentHandler {
     private final SseEmitter sseEmitter;
     private final AgentChatDTO agentChatDTO;
     private final AgentProperties agentProperties;
-    private final AgentMemoryManager agentMemoryManager;
     private final AgentConcurrencyLimiter concurrencyLimiter;
 
     private Integer chunkId = 1;  // SSE 数据块序号
@@ -75,7 +73,7 @@ public class AgentHandler {
                         sendStart();
                         executeAgentStream();
                     } catch (AgentConcurrencyException e) {
-                        log.warn("[agent] 并发限流触发 - agentSessionId: {}, 等待队列长度: {}", agentChatDTO.getSessionId(), concurrencyLimiter.getQueueLength());
+                        log.warn("[agent] 并发限流触发 - agentSessionId: {}, 等待队列长度: {}", agentChatDTO.getSessionId(), concurrencyLimiter.getAvailablePermits());
                         handleConcurrencyRejected(e);  // 等待超时，向客户端推送限流事件
                     } catch (Exception e) {
                         handleError(e);

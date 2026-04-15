@@ -90,5 +90,13 @@ public class AgentProperties {
          * 超过此时间仍未获取到许可，则直接向客户端返回 429 错误事件
          */
         private long acquireTimeoutMs = 5000;
+
+        /**
+         * 分布式信号量许可的持有 TTL（毫秒）
+         * 即单个 Agent 请求允许执行的最长时间上限
+         * 超过此时间许可将被 Redis 自动回收，防止节点崩溃导致的许可永久泄漏
+         * 建议设置为实际最长执行时间的 1.5~2 倍，默认 60 秒
+         */
+        private long permitTtlMs = 60000;
     }
 }

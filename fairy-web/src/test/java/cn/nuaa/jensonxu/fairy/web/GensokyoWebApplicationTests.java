@@ -1,4 +1,4 @@
-package cn.nuaa.jensonxu.gensokyo.web;
+package cn.nuaa.jensonxu.fairy.web;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
