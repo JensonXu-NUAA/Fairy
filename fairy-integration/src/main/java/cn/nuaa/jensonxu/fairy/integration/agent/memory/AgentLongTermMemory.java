@@ -68,7 +68,7 @@ public class AgentLongTermMemory {
             sb.append("\n");
         }
 
-        log.debug("[agent] 注入长期记忆 {} 条（偏好 {}，背景 {}）, userId: {}, content: {}", memories.size(), preferences.size(), facts.size(), userId, sb);
+        log.debug("[agent] 注入长期记忆 {} 条（偏好 {}，背景 {}）, userId: {}", memories.size(), preferences.size(), facts.size(), userId);
         return sb.toString();
     }
 

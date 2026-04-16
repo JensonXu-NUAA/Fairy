@@ -6,6 +6,7 @@ import org.springframework.ai.tool.ToolCallbackProvider;
 import org.springframework.ai.tool.method.MethodToolCallbackProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 
 import java.util.List;
 
@@ -14,6 +15,7 @@ import java.util.List;
 public class MCPRegister {
 
     @Bean
+    @Primary
     public ToolCallbackProvider allTools(List<McpToolService> toolServices) {
         log.info("[nacos] 开始注册 MCP 工具");
 

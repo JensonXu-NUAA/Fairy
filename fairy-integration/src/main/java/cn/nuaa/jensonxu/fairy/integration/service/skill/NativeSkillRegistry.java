@@ -1,4 +1,4 @@
-package cn.nuaa.jensonxu.fairy.integration.agent.skill;
+package cn.nuaa.jensonxu.fairy.integration.service.skill;
 
 import org.springframework.ai.chat.prompt.SystemPromptTemplate;
 import com.alibaba.cloud.ai.graph.skills.SkillMetadata;

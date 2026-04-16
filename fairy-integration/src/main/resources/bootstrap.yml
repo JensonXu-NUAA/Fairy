@@ -28,6 +28,19 @@ spring:
           mcp-endpoint: /mcp
           keep-alive-interval: 30s
           disallow-delete: false
+
+      client:
+        enabled: true
+        toolcallback:
+          enabled: true
+        type: async
+        request-timeout: 60s
+        sse:
+          connections:
+            zhipu-web-research:
+              url: https://open.bigmodel.cn
+              sse-endpoint: /api/mcp/web_search/sse?Authorization=31a22cd83e3349b8bfc51589a26f214c.x78LtuxCIduHgjlH
+
     alibaba:
       mcp:
         nacos:

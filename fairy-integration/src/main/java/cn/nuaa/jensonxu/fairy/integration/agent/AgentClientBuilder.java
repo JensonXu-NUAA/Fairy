@@ -7,7 +7,7 @@ import cn.nuaa.jensonxu.fairy.integration.agent.memory.hook.ShortTermRedisSaveHo
 import cn.nuaa.jensonxu.fairy.integration.agent.model.manager.AgentModelManager;
 import cn.nuaa.jensonxu.fairy.integration.agent.memory.AgentLoadedContext;
 import cn.nuaa.jensonxu.fairy.integration.agent.memory.AgentLongTermMemory;
-import cn.nuaa.jensonxu.fairy.integration.agent.skill.NativeSkillRegistry;
+import cn.nuaa.jensonxu.fairy.integration.service.skill.NativeSkillRegistry;
 
 import com.alibaba.cloud.ai.graph.RunnableConfig;
 import com.alibaba.cloud.ai.graph.agent.ReactAgent;
@@ -39,7 +39,7 @@ import java.util.*;
 public class AgentClientBuilder {
 
     private final AgentModelManager agentModelManager;
-    private final ToolCallbackProvider toolCallbackProvider;
+    private final List<ToolCallbackProvider> toolCallbackProviders;
     private final AgentProperties agentProperties;
     private final MemorySaver memorySaver;
     private final ShortTermRedisSaveHook shortTermRedisSaveHook;
@@ -69,7 +69,10 @@ public class AgentClientBuilder {
 
         List<Hook> hooks = List.of(skillsAgentHook, shortTermRedisSaveHook);
         List<Interceptor> interceptors = List.of(memInterceptor);
-        return agentModelManager.createAgent(resolvedName, toolCallbackProvider.getToolCallbacks(), memorySaver, hooks, interceptors);
+        ToolCallback[] allTools = toolCallbackProviders.stream()
+                .flatMap(p -> Arrays.stream(p.getToolCallbacks()))
+                .toArray(ToolCallback[]::new);
+        return agentModelManager.createAgent(resolvedName, allTools, memorySaver, hooks, interceptors);
     }
 
     /**
