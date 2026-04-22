@@ -6,6 +6,7 @@ spring:
   config:
     import:
       - optional:nacos:llm_config.${spring.cloud.nacos.config.file-extension}?group=FAIRY_LLM_GROUP&refreshEnabled=true
+      - optional:nacos:mcp_client_config.yml?group=FAIRY_MCP_GROUP&refreshEnabled=false
   cloud:
     nacos:
       config:
@@ -31,24 +32,5 @@ spring:
 
       client:
         enabled: true
-        toolcallback:
-          enabled: true
         type: async
         request-timeout: 60s
-        sse:
-          connections:
-            zhipu-web-research:
-              url: https://open.bigmodel.cn
-              sse-endpoint: /api/mcp/web_search/sse?Authorization=31a22cd83e3349b8bfc51589a26f214c.x78LtuxCIduHgjlH
-
-    alibaba:
-      mcp:
-        nacos:
-          namespace: 45a75346-2ee8-446c-8bca-20db580102c4
-          server-addr: 139.224.197.83:8848
-          username: nacos
-          password: nacos
-          register:
-            enabled: true
-            service-group: mcp-server             ## 指定分组名称
-            service-name: fairy-mcp-server        ## 指定服务名称

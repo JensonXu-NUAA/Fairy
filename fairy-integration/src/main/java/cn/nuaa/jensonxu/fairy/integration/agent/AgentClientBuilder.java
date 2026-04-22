@@ -1,5 +1,7 @@
 package cn.nuaa.jensonxu.fairy.integration.agent;
 
+import cn.nuaa.jensonxu.fairy.integration.service.mcp.McpClientManager;
+import cn.nuaa.jensonxu.fairy.integration.service.mcp.McpToolCallLogger;
 import cn.nuaa.jensonxu.fairy.integration.service.tools.service.SkillToolService;
 
 import cn.nuaa.jensonxu.fairy.integration.agent.memory.hook.LongTermMemoryInterceptor;
@@ -28,6 +30,7 @@ import org.springframework.ai.tool.method.MethodToolCallbackProvider;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
+import java.util.stream.Stream;
 
 /**
  * Agent 构建器
@@ -44,6 +47,7 @@ public class AgentClientBuilder {
     private final MemorySaver memorySaver;
     private final ShortTermRedisSaveHook shortTermRedisSaveHook;
     private final AgentLongTermMemory agentLongTermMemory;
+    private final McpClientManager mcpClientManager;  // mcp 配置管理
     private final NativeSkillRegistry nativeSkillRegistry;  // skill 注册
     private final List<SkillToolService> skillToolServices;  // skill 列表
 
@@ -62,16 +66,24 @@ public class AgentClientBuilder {
         prepopulateIfNeeded(sessionId, context.shortTermMessages());  // 若 MemorySaver 中尚无该会话的记录（进程重启），从 Redis/MySQL 回填历史消息
         LongTermMemoryInterceptor memInterceptor = new LongTermMemoryInterceptor(agentLongTermMemory, userId);
 
+        // 组装 skill
         SkillsAgentHook skillsAgentHook = SkillsAgentHook.builder()
                 .skillRegistry(nativeSkillRegistry)
                 .groupedTools(buildGroupedTools())
                 .build();
 
-        List<Hook> hooks = List.of(skillsAgentHook, shortTermRedisSaveHook);
-        List<Interceptor> interceptors = List.of(memInterceptor);
-        ToolCallback[] allTools = toolCallbackProviders.stream()
+        // 组装mcp
+        ToolCallback[] localTools = toolCallbackProviders.stream()
                 .flatMap(p -> Arrays.stream(p.getToolCallbacks()))
                 .toArray(ToolCallback[]::new);
+        ToolCallback[] nacosTools = Arrays.stream(mcpClientManager.getActiveToolCallbacks())
+                .map(McpToolCallLogger::new)
+                .toArray(ToolCallback[]::new);
+        ToolCallback[] allTools = Stream.concat(Arrays.stream(localTools), Arrays.stream(nacosTools)).toArray(ToolCallback[]::new);
+
+        // 组装各种拦截器、过滤器
+        List<Hook> hooks = List.of(skillsAgentHook, shortTermRedisSaveHook);
+        List<Interceptor> interceptors = List.of(memInterceptor);
         return agentModelManager.createAgent(resolvedName, allTools, memorySaver, hooks, interceptors);
     }
 
