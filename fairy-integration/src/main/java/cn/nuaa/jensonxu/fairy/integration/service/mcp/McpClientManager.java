@@ -45,7 +45,7 @@ public class McpClientManager {
 
     private final NacosConfigManager nacosConfigManager;
 
-    private static final String DATA_ID = "mcp_client_config.yml";
+    private static final String DATA_ID = "mcp_client_config";
     private static final String GROUP   = "FAIRY_MCP_GROUP";
 
     private final ConcurrentHashMap<String, McpAsyncClient> activeClients = new ConcurrentHashMap<>();  // 活跃的 McpAsyncClient，key 为连接名称
@@ -81,11 +81,10 @@ public class McpClientManager {
                     }
                 }
             });
-
-            log.info("[mcp] ManagedMcpClientManager 初始化完成，监听 dataId={}, group={}", DATA_ID, GROUP);
+            log.info("[mcp] McpClientManager 初始化完成，监听 dataId={}, group={}", DATA_ID, GROUP);
 
         } catch (Exception e) {
-            log.error("[mcp] ManagedMcpClientManager 初始化异常", e);
+            log.error("[mcp] McpClientManager 初始化异常", e);
         }
     }
 
