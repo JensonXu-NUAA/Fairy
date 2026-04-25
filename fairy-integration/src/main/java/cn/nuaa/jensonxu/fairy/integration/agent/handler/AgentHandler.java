@@ -141,8 +141,7 @@ public class AgentHandler {
                     } else {
                         String text = assistantMessage.getText();
                         if (StringUtils.isNotBlank(text)) {
-                            // 累积 Assistant 回复，推理结束后一并写入记忆
-                            assistantTextBuffer.append(text);
+                            assistantTextBuffer.append(text);  // 累积 Assistant 回复，推理结束后一并写入记忆
                             AgentEventDTO event = AgentEventDTO.ofContent(AgentSseEventType.AGENT_ANSWER, text, agentChatDTO.getSessionId());
                             sendSseEvent(AgentSseEventType.AGENT_ANSWER, JSON.toJSONString(event));
                         }

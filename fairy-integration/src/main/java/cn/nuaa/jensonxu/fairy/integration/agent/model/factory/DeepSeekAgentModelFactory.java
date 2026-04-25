@@ -10,13 +10,13 @@ import com.alibaba.nacos.common.utils.StringUtils;
 
 import lombok.extern.slf4j.Slf4j;
 
-import org.springframework.ai.deepseek.DeepSeekChatModel;
-import org.springframework.ai.deepseek.DeepSeekChatOptions;
-import org.springframework.ai.deepseek.api.DeepSeekApi;
+import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.stereotype.Component;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Component
@@ -40,21 +40,24 @@ public class DeepSeekAgentModelFactory extends BaseAgentModelFactory {
 
         ModelConfig.Parameters params = modelConfig.getParameters();
 
-        DeepSeekApi api = DeepSeekApi.builder()
-                .apiKey(modelConfig.getApiKey())
-                .baseUrl(modelConfig.getBaseUrl())
-                .build();
-
-        DeepSeekChatOptions options = DeepSeekChatOptions.builder()
-                .model(DeepSeekApi.ChatModel.DEEPSEEK_CHAT.getValue())
+        OpenAiChatOptions options = OpenAiChatOptions.builder()
+                .model(modelConfig.getModelName())
                 .maxTokens(params.getMaxTokens())
                 .temperature(params.getTemperature())
                 .topP(params.getTopP())
                 .build();
 
-        DeepSeekChatModel model = DeepSeekChatModel.builder()
-                .deepSeekApi(api)
+        // 思考模式配置，透传给 DeepSeekThinkingChatModel
+        Map<String, Object> thinkingConfig = new HashMap<>();
+        if (Boolean.TRUE.equals(params.getEnableThinking())) {
+            thinkingConfig.put("type", "enabled");
+        }
+
+        DeepSeekThinkingChatModel model = DeepSeekThinkingChatModel.builder()
+                .baseUrl(modelConfig.getBaseUrl())
+                .apiKey(modelConfig.getApiKey())
                 .defaultOptions(options)
+                .thinkingConfig(thinkingConfig)
                 .build();
 
         return ReactAgent.builder()

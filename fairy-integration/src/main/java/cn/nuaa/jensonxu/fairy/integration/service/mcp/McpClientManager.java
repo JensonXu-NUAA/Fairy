@@ -130,15 +130,7 @@ public class McpClientManager {
                 .filter(name -> !newConfigs.containsKey(name))
                 .toList()
                 .forEach(this::closeAndRemove);
-
-        // 切换到 boundedElastic 线程执行缓存刷新
-        // 避免在 Nacos listener 线程中直接 block，导致 Reactor 响应无法派发
-        Mono.fromRunnable(this::refreshCache)
-                .subscribeOn(Schedulers.boundedElastic())
-                .subscribe(
-                        null,
-                        e -> log.error("[mcp] 异步刷新缓存失败", e)
-                );
+        refreshCache();
     }
 
     /**
@@ -189,12 +181,16 @@ public class McpClientManager {
             log.info("[mcp] 当前无活跃连接，工具回调缓存已清空");
             return;
         }
-        try {
-            cachedToolCallbacks = new AsyncMcpToolCallbackProvider(new ArrayList<>(activeClients.values())).getToolCallbacks();
-            log.info("[mcp] 工具回调缓存已刷新，共 {} 个第三方工具", cachedToolCallbacks.length);
-        } catch (Exception e) {
-            log.error("[mcp] 工具回调缓存刷新失败", e);
-        }
+
+        Mono.fromCallable(() -> new AsyncMcpToolCallbackProvider(new ArrayList<>(activeClients.values())).getToolCallbacks())
+                .subscribeOn(Schedulers.boundedElastic())
+                .subscribe(
+                        callbacks -> {
+                            cachedToolCallbacks = callbacks;
+                            log.info("[mcp] 工具回调缓存已刷新，共 {} 个第三方工具", callbacks.length);
+                        },
+                        e -> log.error("[mcp] 工具回调缓存刷新失败", e)
+                );
     }
 
     /**
