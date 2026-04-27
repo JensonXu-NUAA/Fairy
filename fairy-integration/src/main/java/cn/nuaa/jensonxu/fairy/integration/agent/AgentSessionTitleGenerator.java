@@ -2,8 +2,8 @@ package cn.nuaa.jensonxu.fairy.integration.agent;
 
 import cn.nuaa.jensonxu.fairy.common.data.llm.ModelConfig;
 import cn.nuaa.jensonxu.fairy.common.repository.mysql.AgentSessionMetadataRepository;
-import cn.nuaa.jensonxu.fairy.integration.agent.model.manager.AgentModelManager;
 
+import cn.nuaa.jensonxu.fairy.integration.agent.model.manager.NativeModelManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -20,7 +20,7 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class AgentSessionTitleGenerator {
 
-    private final AgentModelManager agentModelManager;
+    private final NativeModelManager nativeModelManager;
     private final AgentProperties agentProperties;
     private final AgentSessionMetadataRepository metadataRepository;
 
@@ -43,7 +43,7 @@ public class AgentSessionTitleGenerator {
         log.info("[title-gen] 开始生成会话标题, sessionId: {}", sessionId);
         try {
             String modelName = agentProperties.getMemory().getLongTerm().getModelName();
-            ModelConfig modelConfig = agentModelManager.getSummaryModelConfig(modelName);
+            ModelConfig modelConfig = nativeModelManager.getSummaryModelConfig(modelName);
 
             OpenAiApi openAiApi = OpenAiApi.builder()
                     .apiKey(modelConfig.getApiKey())
@@ -71,11 +71,10 @@ public class AgentSessionTitleGenerator {
                     title = title.substring(0, 200);
                 }
                 metadataRepository.updateTitle(sessionId, title);
-                log.info("[title-gen] 标题生成成功, sessionId: {}, title: {}", sessionId, title);
+                log.info("[title] 标题生成成功, sessionId: {}, title: {}", sessionId, title);
             }
         } catch (Exception e) {
-            log.error("[title-gen] 标题生成失败, sessionId: {}", sessionId, e);
-            // 失败不影响主流程，title 保持 null，前端可展示兜底文案
+            log.error("[title] 标题生成失败, sessionId: {}", sessionId, e);  // 失败不影响主流程，title 保持 null，前端可展示兜底文案
         }
     }
 }

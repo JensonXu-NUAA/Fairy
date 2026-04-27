@@ -2,9 +2,7 @@ package cn.nuaa.jensonxu.fairy.web.controller;
 
 import cn.nuaa.jensonxu.fairy.common.data.llm.agent.response.AgentSessionVO;
 import cn.nuaa.jensonxu.fairy.common.data.llm.agent.response.AgentSessionMessageVO;
-import cn.nuaa.jensonxu.fairy.common.data.llm.ModelVO;
 import cn.nuaa.jensonxu.fairy.common.data.file.response.CustomResponse;
-import cn.nuaa.jensonxu.fairy.integration.agent.model.manager.AgentModelManager;
 import cn.nuaa.jensonxu.fairy.service.agent.AgentSessionQueryService;
 import cn.nuaa.jensonxu.fairy.common.data.llm.agent.request.AgentChatDTO;
 import cn.nuaa.jensonxu.fairy.service.agent.AgentService;
@@ -27,7 +25,6 @@ import java.util.List;
 public class AgentController {
 
     private final AgentService agentService;
-    private final AgentModelManager agentModelManager;
     private final AgentSessionQueryService sessionQueryService;
 
     /**
@@ -64,23 +61,5 @@ public class AgentController {
     public CustomResponse<List<AgentSessionMessageVO>> listMessages(@PathVariable String sessionId) {
         log.info("[agent] 查询会话消息 - sessionId: {}", sessionId);
         return CustomResponse.success(sessionQueryService.listMessages(sessionId));
-    }
-
-    /**
-     * 查询当前可用模型列表
-     * GET /agent/models
-     */
-    @GetMapping("/models")
-    public CustomResponse<List<ModelVO>> listModels() {
-        List<ModelVO> models = agentModelManager.getAvailableModels().stream()
-                .map(m -> ModelVO.builder()
-                        .modelName(m.getModelName())
-                        .provider(m.getProvider())
-                        .enableThinking(m.getParameters() != null
-                                ? m.getParameters().getEnableThinking()
-                                : null)
-                        .build())
-                .toList();
-        return CustomResponse.success(models);
     }
 }

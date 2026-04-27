@@ -1,12 +1,12 @@
 package cn.nuaa.jensonxu.fairy.integration.agent;
 
+import cn.nuaa.jensonxu.fairy.integration.agent.model.manager.CustomModelManager;
 import cn.nuaa.jensonxu.fairy.integration.service.mcp.McpClientManager;
 import cn.nuaa.jensonxu.fairy.integration.service.mcp.McpToolCallLogger;
 import cn.nuaa.jensonxu.fairy.integration.service.tools.service.SkillToolService;
 
 import cn.nuaa.jensonxu.fairy.integration.agent.memory.hook.LongTermMemoryInterceptor;
 import cn.nuaa.jensonxu.fairy.integration.agent.memory.hook.ShortTermRedisSaveHook;
-import cn.nuaa.jensonxu.fairy.integration.agent.model.manager.AgentModelManager;
 import cn.nuaa.jensonxu.fairy.integration.agent.memory.AgentLoadedContext;
 import cn.nuaa.jensonxu.fairy.integration.agent.memory.AgentLongTermMemory;
 import cn.nuaa.jensonxu.fairy.integration.service.skill.NativeSkillRegistry;
@@ -41,9 +41,8 @@ import java.util.stream.Stream;
 @RequiredArgsConstructor
 public class AgentClientBuilder {
 
-    private final AgentModelManager agentModelManager;
+    private final CustomModelManager customModelManager;
     private final List<ToolCallbackProvider> toolCallbackProviders;
-    private final AgentProperties agentProperties;
     private final MemorySaver memorySaver;
     private final ShortTermRedisSaveHook shortTermRedisSaveHook;
     private final AgentLongTermMemory agentLongTermMemory;
@@ -61,8 +60,10 @@ public class AgentClientBuilder {
      * @return 已注入工具、记忆、System Prompt 的 ReactAgent 实例
      */
     public ReactAgent build(String modelName, String sessionId, String userId, AgentLoadedContext context) {
-        String resolvedName = StringUtils.isNotBlank(modelName) ? modelName : agentProperties.getDefaultModel();
-        log.info("[agent] 构建 ReactAgent, modelName: {}, sessionId: {}", resolvedName, sessionId);
+        if (StringUtils.isBlank(modelName)) {
+            throw new IllegalArgumentException("[agent] modelName 不能为空，请先在模型配置中选择一个模型");
+        }
+        log.info("[agent] 构建 ReactAgent, modelName: {}, sessionId: {}", modelName, sessionId);
         prepopulateIfNeeded(sessionId, context.shortTermMessages());  // 若 MemorySaver 中尚无该会话的记录（进程重启），从 Redis/MySQL 回填历史消息
         LongTermMemoryInterceptor memInterceptor = new LongTermMemoryInterceptor(agentLongTermMemory, userId);
 
@@ -84,7 +85,7 @@ public class AgentClientBuilder {
         // 组装各种拦截器、过滤器
         List<Hook> hooks = List.of(skillsAgentHook, shortTermRedisSaveHook);
         List<Interceptor> interceptors = List.of(memInterceptor);
-        return agentModelManager.createAgent(resolvedName, allTools, memorySaver, hooks, interceptors);
+        return customModelManager.createAgent(modelName, userId, allTools, memorySaver, hooks, interceptors);
     }
 
     /**

@@ -2,8 +2,8 @@ package cn.nuaa.jensonxu.fairy.integration.agent.memory;
 
 import cn.nuaa.jensonxu.fairy.common.data.llm.ModelConfig;
 import cn.nuaa.jensonxu.fairy.integration.agent.AgentProperties;
-import cn.nuaa.jensonxu.fairy.integration.agent.model.manager.AgentModelManager;
 
+import cn.nuaa.jensonxu.fairy.integration.agent.model.manager.NativeModelManager;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
@@ -33,7 +33,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class AgentMemorySummarizer {
 
-    private final AgentModelManager agentModelManager;
+    private final NativeModelManager nativeModelManager;
     private final AgentProperties agentProperties;
 
     private static final String SYSTEM_PROMPT = """
@@ -72,7 +72,7 @@ public class AgentMemorySummarizer {
         }
 
         String modelName = agentProperties.getMemory().getLongTerm().getModelName();
-        ModelConfig modelConfig = agentModelManager.getSummaryModelConfig(modelName);
+        ModelConfig modelConfig = nativeModelManager.getSummaryModelConfig(modelName);
         String userContent = buildUserContent(messages);
 
         log.info("[summarizer] 开始提炼摘要, userId: {}, sessionId: {}, 消息数: {}, 模型配置: {}", userId, sessionId, messages.size(),modelConfig);
