@@ -29,27 +29,33 @@ public class AgentMemoryDO {
     @TableField("user_id")
     private String userId;
 
-    /** 记忆标签，如 user_language_preference */
+    /** 记忆标签，唯一标识一条记忆，如 api_naming_convention */
     @TableField("memory_key")
     private String memoryKey;
 
-    /** 记忆分类：preference=用户偏好，fact=客观事实 */
+    /** 记忆名称，简短展示用，如"API命名约定" */
+    @TableField("name")
+    private String name;
+
+    /** 一句话摘要，用于索引展示，如"接口字段统一使用驼峰命名" */
+    @TableField("description")
+    private String description;
+
+    /**
+     * 记忆分类：
+     * user       - 用户背景、身份、跨项目个人特征
+     * feedback   - 用户对 AI 行为的评价，哪些该做哪些不该做
+     * project    - 当前项目的决策、约定、上下文
+     * reference  - 外部资源指针（文档链接等）
+     */
     @TableField("category")
     private String category;
 
-    /** 记忆内容 */
+    /** 记忆完整内容 */
     @TableField("content")
     private String content;
 
-    /** 来源：auto=摘要自动提炼，manual=用户显式保存 */
-    @TableField("source")
-    private String source;
-
-    /** 重要度 1-10，数值越高越优先注入 System Prompt */
-    @TableField("importance")
-    private Integer importance;
-
-    /** 最近一次提炼该记忆的会话 ID，用于追溯 */
+    /** 最近一次更新该记忆的会话 ID，用于追溯 */
     @TableField("source_session_id")
     private String sourceSessionId;
 

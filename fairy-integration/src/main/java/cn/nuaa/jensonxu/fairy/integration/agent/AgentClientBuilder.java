@@ -1,12 +1,13 @@
 package cn.nuaa.jensonxu.fairy.integration.agent;
 
+import cn.nuaa.jensonxu.fairy.integration.agent.memory.AgentMemoryRecaller;
+import cn.nuaa.jensonxu.fairy.integration.agent.memory.hook.AfterAgentMemoryHook;
 import cn.nuaa.jensonxu.fairy.integration.agent.model.manager.CustomModelManager;
 import cn.nuaa.jensonxu.fairy.integration.service.mcp.McpClientManager;
 import cn.nuaa.jensonxu.fairy.integration.service.mcp.McpToolCallLogger;
 import cn.nuaa.jensonxu.fairy.integration.service.tools.service.SkillToolService;
 
 import cn.nuaa.jensonxu.fairy.integration.agent.memory.hook.LongTermMemoryInterceptor;
-import cn.nuaa.jensonxu.fairy.integration.agent.memory.hook.ShortTermRedisSaveHook;
 import cn.nuaa.jensonxu.fairy.integration.agent.memory.AgentLoadedContext;
 import cn.nuaa.jensonxu.fairy.integration.agent.memory.AgentLongTermMemory;
 import cn.nuaa.jensonxu.fairy.integration.service.skill.NativeSkillRegistry;
@@ -44,8 +45,9 @@ public class AgentClientBuilder {
     private final CustomModelManager customModelManager;
     private final List<ToolCallbackProvider> toolCallbackProviders;
     private final MemorySaver memorySaver;
-    private final ShortTermRedisSaveHook shortTermRedisSaveHook;
+    private final AfterAgentMemoryHook afterAgentMemoryHook;
     private final AgentLongTermMemory agentLongTermMemory;
+    private final AgentMemoryRecaller agentMemoryRecaller;
     private final McpClientManager mcpClientManager;  // mcp 配置管理
     private final NativeSkillRegistry nativeSkillRegistry;  // skill 注册
     private final List<SkillToolService> skillToolServices;  // skill 列表
@@ -65,7 +67,7 @@ public class AgentClientBuilder {
         }
         log.info("[agent] 构建 ReactAgent, modelName: {}, sessionId: {}", modelName, sessionId);
         prepopulateIfNeeded(sessionId, context.shortTermMessages());  // 若 MemorySaver 中尚无该会话的记录（进程重启），从 Redis/MySQL 回填历史消息
-        LongTermMemoryInterceptor memInterceptor = new LongTermMemoryInterceptor(agentLongTermMemory, userId);
+        LongTermMemoryInterceptor memInterceptor = new LongTermMemoryInterceptor(agentLongTermMemory, agentMemoryRecaller, userId);
 
         // 组装 skill
         SkillsAgentHook skillsAgentHook = SkillsAgentHook.builder()
@@ -83,7 +85,7 @@ public class AgentClientBuilder {
         ToolCallback[] allTools = Stream.concat(Arrays.stream(localTools), Arrays.stream(nacosTools)).toArray(ToolCallback[]::new);
 
         // 组装各种拦截器、过滤器
-        List<Hook> hooks = List.of(skillsAgentHook, shortTermRedisSaveHook);
+        List<Hook> hooks = List.of(skillsAgentHook, afterAgentMemoryHook);
         List<Interceptor> interceptors = List.of(memInterceptor);
         return customModelManager.createAgent(modelName, userId, allTools, memorySaver, hooks, interceptors);
     }
