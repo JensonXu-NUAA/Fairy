@@ -11,6 +11,8 @@ import com.alibaba.fastjson2.JSONObject;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import org.apache.commons.lang3.StringUtils;
+
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.MessageType;
@@ -20,6 +22,7 @@ import org.springframework.stereotype.Component;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -75,6 +78,7 @@ public class AgentShortTermMemory {
             List<String> serialized = messages.stream().map(this::serialize).toList();
 
             // DEL → RPUSH → EXPIRE，原子性替换整个 List
+            // todo: 替换成 lua 脚本
             redisUtil.delete(key);
             redisUtil.listRightPushAll(key, serialized.toArray(new Object[0]));
             redisUtil.expire(key, ttlHours, TimeUnit.HOURS);
@@ -142,6 +146,14 @@ public class AgentShortTermMemory {
         JSONObject json = new JSONObject();
         json.put("role", resolveRole(message));
         json.put("content", message.getText());
+
+        // deepseek 如果执行了工具调用之后不回传 reasoning_content 会触发 400 报错，这里做针对性处理
+        if(message instanceof AssistantMessage assistantMessage) {
+            Object reasoningContent = assistantMessage.getMetadata().get("reasoningContent");
+            if(reasoningContent != null && !reasoningContent.toString().isBlank()) {
+                json.put("reasoningContent", reasoningContent.toString());
+            }
+        }
         return json.toJSONString();
     }
 
@@ -149,8 +161,18 @@ public class AgentShortTermMemory {
         JSONObject obj = JSON.parseObject(json);
         String role = obj.getString("role");
         String content = obj.getString("content");
-        // role: "user" → UserMessage，"assistant" → AssistantMessage
-        return "assistant".equals(role) ? new AssistantMessage(content) : new UserMessage(content);
+
+        if ("assistant".equals(role)) {
+            String reasoningContent = obj.getString("reasoningContent");
+            if (StringUtils.isNotBlank(reasoningContent)) {
+                return AssistantMessage.builder()
+                        .content(content)
+                        .properties(Map.of("reasoningContent", reasoningContent))
+                        .build();
+            }
+            return new AssistantMessage(content);
+        }
+        return new UserMessage(content);
     }
 
     private String resolveRole(Message message) {
