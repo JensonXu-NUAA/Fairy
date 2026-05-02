@@ -151,8 +151,8 @@ fairy/
 
 1. **克隆项目**
    ```bash
-   git clone https://github.com/JensonXu-NUAA/Fairy.git
-   cd Fairy
+   git clone https://github.com/jenson2525/fairy-backend.git
+   cd fairy-backend
    ```
 
 2. **配置数据库**
@@ -407,7 +407,7 @@ public class NewProviderAgentModelFactory extends BaseAgentModelFactory {
 
 ## 👥 作者
 
-**Jenson Xu** - *项目维护者* - [GitHub](https://github.com/JensonXu-NUAA)
+**Jenson Xu** - *项目维护者* - [GitHub](https://github.com/jenson2525)
 
 ## 🙏 致谢
 

@@ -13,8 +13,8 @@
     <version>0.0.1-SNAPSHOT</version>
     <packaging>pom</packaging>
 
-    <name>Fairy</name>
-    <description>Fairy Multi-Module Project</description>
+    <name>fairy-backend</name>
+    <description>fairy-backend Multi-Module Project</description>
 
     <!-- 模块管理 -->
     <modules>
