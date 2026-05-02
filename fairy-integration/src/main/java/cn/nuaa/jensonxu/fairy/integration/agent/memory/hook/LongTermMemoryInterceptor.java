@@ -17,6 +17,7 @@ import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.MessageType;
 import org.springframework.ai.chat.messages.SystemMessage;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -28,6 +29,8 @@ import java.util.List;
  */
 @Slf4j
 public class LongTermMemoryInterceptor extends ModelInterceptor {
+
+    private static final String FEEDBACK_CATEGORY = "feedback";
 
     private final String userId;
     private final AgentLongTermMemory longTermMemory;
@@ -73,26 +76,26 @@ public class LongTermMemoryInterceptor extends ModelInterceptor {
      * 任意阶段为空则直接返回空字符串，不阻断主流程
      */
     private String buildPrefix(ModelRequest request) {
+        List<AgentMemoryDO> feedbackMemories = longTermMemory.loadFeedbackMemories(userId);
+        List<AgentMemoryDO> allMemories = new ArrayList<>(feedbackMemories);  // feedback 类全量加载，不走召回
+
+        // 其余分类走两阶段召回
         MemoryManifest manifest = longTermMemory.buildMemoryManifest(userId);  // Step 1：构建索引清单
-        if (manifest.isEmpty()) {
+        if(!manifest.isEmpty()) {
+            String currentMessage = extractLastUserMessage(request.getMessages());  // Step 2：从请求消息中提取最后一条用户消息
+            List<String> selectedKeys = recaller.recall(userId, currentMessage, manifest.text(), manifest.validKeys());  // Step 3：LLM 侧查询召回相关 key
+            if(!selectedKeys.isEmpty()) {
+                List<AgentMemoryDO> recalledMemories = longTermMemory.loadSelectedMemories(userId, selectedKeys);  // Step 4：加载完整内容
+                allMemories.addAll(recalledMemories);
+            }
+        }
+        if (allMemories.isEmpty()) {
             log.debug("[long-term-interceptor] 用户无长期记忆, userId: {}", userId);
             return "";
         }
 
-        String currentMessage = extractLastUserMessage(request.getMessages());  // Step 2：从请求消息中提取最后一条用户消息
-        List<String> selectedKeys = recaller.recall(userId, currentMessage, manifest.text(), manifest.validKeys());  // Step 3：LLM 侧查询召回相关 key
-        if (selectedKeys.isEmpty()) {
-            log.debug("[long-term-interceptor] 召回结果为空, userId: {}", userId);
-            return "";
-        }
-
-        List<AgentMemoryDO> selectedMemories = longTermMemory.loadSelectedMemories(userId, selectedKeys);  // Step 4：加载完整内容
-        if (selectedMemories.isEmpty()) {
-            return "";
-        }
-
-        String prefix = longTermMemory.buildSystemPromptPrefix(selectedMemories);  // Step 5：拼装 System Prompt 前缀
-        log.info("[long-term-interceptor] 长期记忆加载完成, userId: {}, 注入 {} 条", userId, selectedMemories.size());
+        String prefix = longTermMemory.buildSystemPromptPrefix(allMemories);  // Step 5：拼装 System Prompt 前缀
+        log.info("[long-term-interceptor] 长期记忆加载完成, userId: {}, feedback {} 条, 召回 {} 条", userId, feedbackMemories.size(), allMemories.size() - feedbackMemories.size());
         return prefix;
     }
 

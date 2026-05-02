@@ -86,4 +86,19 @@ public class AgentMemoryRepository {
                         .last("LIMIT " + limit)
         );
     }
+
+    /**
+     * 查询用户指定分类的全量记忆（含 content），按更新时间降序
+     * 用于加载 feedback 类记忆全量注入 System Prompt
+     */
+    public List<AgentMemoryDO> findByUserIdAndCategory(String userId, String category) {
+        return mapper.selectList(
+                new LambdaQueryWrapper<AgentMemoryDO>()
+                        .select(AgentMemoryDO::getMemoryKey, AgentMemoryDO::getCategory, AgentMemoryDO::getName, AgentMemoryDO::getContent)
+                        .eq(AgentMemoryDO::getUserId, userId)
+                        .eq(AgentMemoryDO::getCategory, category)
+                        .eq(AgentMemoryDO::getIsDeleted, 0)
+                        .orderByDesc(AgentMemoryDO::getUpdatedAt)
+        );
+    }
 }

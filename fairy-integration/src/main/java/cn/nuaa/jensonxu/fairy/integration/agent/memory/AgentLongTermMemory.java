@@ -51,7 +51,10 @@ public class AgentLongTermMemory {
             return new MemoryManifest("", Set.of());
         }
 
-        List<AgentMemoryDO> indexList = agentMemoryRepository.findIndexByUserId(userId);
+        List<AgentMemoryDO> indexList = agentMemoryRepository.findIndexByUserId(userId)
+                .stream()
+                .filter(m -> !"feedback".equals(m.getCategory()))
+                .toList();
         if (indexList.isEmpty()) {
             return new MemoryManifest("", Set.of());
         }
@@ -86,6 +89,22 @@ public class AgentLongTermMemory {
             return List.of();
         }
         return agentMemoryRepository.findContentByKeys(userId, keys);
+    }
+
+    /**
+     * 加载用户所有 feedback 类记忆（全量，不走召回）
+     * feedback 类为行为约束，与话题无关，应始终注入
+     *
+     * @param userId 用户 ID
+     * @return feedback 类记忆列表，无记录时返回空列表
+     */
+    public List<AgentMemoryDO> loadFeedbackMemories(String userId) {
+        if (StringUtils.isBlank(userId)) {
+            return List.of();
+        }
+        List<AgentMemoryDO> memories = agentMemoryRepository.findByUserIdAndCategory(userId, "feedback");
+        log.debug("[long-term] 加载 feedback 记忆, userId: {}, 共 {} 条", userId, memories.size());
+        return memories;
     }
 
     /**
